@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     trading_mode: str = Field(default="PAPER", description="PAPER or LIVE")
     initial_capital: float = Field(default=10000.0, ge=100.0)
     
-    # Vertex AI (Google Cloud) - Gemini 3 Pro
+    # Vertex AI (Google Cloud) - Gemini 2.0
     vertex_ai_project_id: str = "project-id-placeholder"
     vertex_ai_location: str = "us-central1"
-    vertex_ai_model: str = "gemini-3-pro"
+    vertex_ai_model: str = "gemini-2.0-flash-exp"  # Gemini 2.0 experimental model
     
     # Alpaca Markets (Free API)
     alpaca_api_key: str
@@ -105,17 +105,17 @@ class Settings(BaseSettings):
     crew_deliberation_rounds: int = Field(default=2, ge=1, le=3)
     crew_min_consensus_percent: float = Field(default=66.0, ge=50.0, le=100.0)
     crew_enable_mediator: bool = True
-    crew_mediator_model: str = "google/gemini-3-pro"
+    crew_mediator_model: str = "google/gemini-2.0-flash-exp"
     crew_vote_weighting: str = "PERFORMANCE_BASED"
     crew_max_messages_per_round: int = Field(default=3, ge=1, le=10)
     
     # Order execution validator
     enable_order_validation: bool = True
-    order_validator_model: str = "google/gemini-3-pro"
+    order_validator_model: str = "google/gemini-2.0-flash-exp"
     
     # Intelligent decision parsing (using Claude 4.5 Sonnet)
     enable_intelligent_parsing: bool = True
-    claude_parsing_model: str = "google/gemini-3-pro"
+    claude_parsing_model: str = "google/gemini-2.0-flash-exp"
     parsing_cache_enabled: bool = True
     parsing_fallback_to_regex: bool = True
     

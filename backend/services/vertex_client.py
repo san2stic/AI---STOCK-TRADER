@@ -24,29 +24,41 @@ class VertexAIClient:
     def __init__(self):
         self.project_id = settings.vertex_ai_project_id
         self.location = settings.vertex_ai_location
-        # Default to Gemini 3 Pro
-        self.default_model = "gemini-3-pro"
+        # Default to Gemini model from settings
+        self.default_model = settings.vertex_ai_model
         
         # Mapping from legacy/generic names to Vertex AI Model IDs
         self.model_mapping = {
-            # Gemini models
-            "google/gemini-3-pro": "gemini-3-pro",
-            "google/gemini-2.5-flash": "gemini-2.5-flash",
-            "google/gemini-2.5-pro": "gemini-2.5-pro",
-            "google/gemini-2.0-flash": "gemini-2.0-flash-001",
-            "gemini-3-pro": "gemini-3-pro",
-            "gemini-2.5-flash": "gemini-2.5-flash",
+            # Gemini 3 models (preview - latest generation)
+            "google/gemini-3-pro-preview": "gemini-3-pro-preview",
+            "google/gemini-3-flash-preview": "gemini-3-flash-preview",
+            "gemini-3-pro-preview": "gemini-3-pro-preview",
+            "gemini-3-flash-preview": "gemini-3-flash-preview",
             
-            # Legacy Claude mappings -> redirect to Gemini
-            "anthropic/claude-4.5-sonnet": "gemini-3-pro",
-            "anthropic/claude-3.5-sonnet": "gemini-3-pro",
-            "anthropic/claude-3-opus": "gemini-3-pro",
-            "anthropic/claude-3-haiku": "gemini-2.5-flash",
+            # Gemini models (actual Vertex AI models)
+            "google/gemini-2.0-flash-exp": "gemini-2.0-flash-exp",
+            "google/gemini-exp-1206": "gemini-exp-1206",
+            "google/gemini-1.5-pro": "gemini-1.5-pro-002",
+            "google/gemini-1.5-flash": "gemini-1.5-flash-002",
+            "gemini-2.0-flash-exp": "gemini-2.0-flash-exp",
+            "gemini-exp-1206": "gemini-exp-1206",
+            "gemini-1.5-pro": "gemini-1.5-pro-002",
+            "gemini-1.5-flash": "gemini-1.5-flash-002",
             
-            # Legacy OpenAI mappings -> redirect to Gemini
-            "openai/gpt-4o": "gemini-3-pro",
-            "openai/gpt-4-turbo-preview": "gemini-3-pro",
-            "openai/gpt-5.2": "gemini-3-pro",
+            # Legacy Claude mappings -> redirect to Gemini 3 Preview
+            "anthropic/claude-4.5-sonnet": "gemini-3-pro-preview",
+            "anthropic/claude-3.5-sonnet": "gemini-3-pro-preview",
+            "anthropic/claude-3-opus": "gemini-3-pro-preview",
+            "anthropic/claude-3-haiku": "gemini-3-flash-preview",
+            
+            # Legacy OpenAI mappings -> redirect to Gemini 3 Preview
+            "openai/gpt-4o": "gemini-3-pro-preview",
+            "openai/gpt-4-turbo-preview": "gemini-3-pro-preview",
+            "openai/gpt-5.2": "gemini-3-pro-preview",
+            
+            # Legacy non-existent models -> redirect to valid ones
+            "google/gemini-3-pro": "gemini-3-pro-preview",
+            "gemini-3-pro": "gemini-3-pro-preview",
         }
         
     def _get_access_token(self) -> str:
