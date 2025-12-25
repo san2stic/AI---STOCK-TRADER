@@ -74,7 +74,9 @@ export default function Home() {
     useEffect(() => {
         const connectWebSocket = () => {
             let wsUrl: string;
-            if (typeof window !== 'undefined') {
+            if (process.env.NEXT_PUBLIC_WS_URL) {
+                wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+            } else if (typeof window !== 'undefined') {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const host = window.location.host;
                 wsUrl = `${protocol}//${host}/ws`;
