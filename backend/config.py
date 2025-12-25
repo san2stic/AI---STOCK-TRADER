@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     initial_capital: float = Field(default=10000.0, ge=100.0)
     
     # Google AI Studio (Gemini API)
-    google_ai_api_key: str = ""
+    google_ai_api_key: str = Field(..., alias="GOOGLE_AI_API_KEY")
     gemini_model: str = "gemini-3-pro-preview"  # Default Gemini model
     
     # Alpaca Markets (Free API)
