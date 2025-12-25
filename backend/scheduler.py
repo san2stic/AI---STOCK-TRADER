@@ -123,6 +123,21 @@ class TradingOrchestrator:
                 # Default symbols if none specified
                 symbols = ["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA"]
             
+            # Add Watchlist symbols to collection
+            try:
+                from database import get_db
+                from models.database import Watchlist
+                
+                with get_db() as db:
+                    watchlist_items = db.query(Watchlist.symbol).distinct().all()
+                    watchlist_symbols = [item[0] for item in watchlist_items]
+                    
+                    if watchlist_symbols:
+                        logger.info("adding_watchlist_symbols", count=len(watchlist_symbols), symbols=watchlist_symbols)
+                        symbols = list(set(symbols + watchlist_symbols))
+            except Exception as e:
+                logger.error("watchlist_load_error", error=str(e))
+            
             logger.info("collecting_market_data", symbols=len(symbols))
             
             prices = {}

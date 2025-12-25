@@ -64,7 +64,12 @@ TRADING_TOOLS = [
                 "properties": {
                     "symbol": {
                         "type": "string",
-                        "description": "Stock symbol",
+                        "description": "Stock symbol (deprecated, use symbols list for multiple)",
+                    },
+                    "symbols": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of stock symbols to search news for",
                     },
                     "days": {
                         "type": "integer",
@@ -72,7 +77,32 @@ TRADING_TOOLS = [
                         "default": 7,
                     },
                 },
-                "required": ["symbol"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "manage_watchlist",
+            "description": "Add or remove symbols from your personal watchlist for continuous tracking.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["add", "remove", "list"],
+                        "description": "Action to perform",
+                    },
+                    "symbol": {
+                        "type": "string",
+                        "description": "Stock or crypto symbol to add/remove",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Reason for adding to watchlist",
+                    },
+                },
+                "required": ["action"],
             },
         },
     },
@@ -621,7 +651,9 @@ class TradingTools:
         handlers = {
             "get_stock_price": self.get_stock_price,
             "get_historical_data": self.get_historical_data,
+            "get_historical_data": self.get_historical_data,
             "search_news": self.search_news,
+            "manage_watchlist": self.manage_watchlist,
             "search_web": self.search_web,
             "search_twitter": self.search_twitter,
             "buy_stock": self.buy_stock,
@@ -705,18 +737,91 @@ class TradingTools:
             "data": historical,
         }
     
-    async def search_news(self, symbol: str, days: int = 7) -> Dict[str, Any]:
-        """Search news for a symbol."""
+    async def search_news(self, symbol: str = None, symbols: List[str] = None, days: int = 7) -> Dict[str, Any]:
+        """Search news for one or more symbols."""
         from services.data_collector import get_data_collector
         
-        symbol = symbol.upper()
         collector = get_data_collector()
-        news = await collector.get_news(symbol, days)
+        
+        targets = []
+        if symbols:
+            targets.extend(symbols)
+        if symbol and symbol not in targets:
+            targets.append(symbol)
+            
+        if not targets:
+            return {"error": "No symbol provided"}
+            
+        results = {}
+        for target in targets:
+            target = target.upper()
+            try:
+                news = await collector.get_news(target, days)
+                results[target] = news[:5]  # Limit per symbol
+            except Exception as e:
+                logger.error("news_search_error", symbol=target, error=str(e))
+                results[target] = []
         
         return {
-            "symbol": symbol,
-            "articles": news[:10],  # Limit to 10 most recent
+            "requested_symbols": targets,
+            "results": results,
         }
+
+    async def manage_watchlist(self, action: str, symbol: str = None, reason: str = None) -> Dict[str, Any]:
+        """Manage agent's watchlist."""
+        from models.database import Watchlist
+        from database import get_db
+        from sqlalchemy.exc import IntegrityError
+        
+        action = action.lower()
+        
+        if action == "list":
+            with get_db() as db:
+                items = db.query(Watchlist).filter(
+                    Watchlist.agent_name == self.agent_name
+                ).all()
+                return {
+                    "watchlist": [{"symbol": i.symbol, "reason": i.reason, "added": i.created_at.isoformat()} for i in items]
+                }
+                
+        if not symbol:
+            return {"error": "Symbol required for add/remove actions"}
+            
+        symbol = symbol.upper()
+        
+        try:
+            with get_db() as db:
+                if action == "add":
+                    # Check if exists
+                    exists = db.query(Watchlist).filter(
+                        Watchlist.agent_name == self.agent_name,
+                        Watchlist.symbol == symbol
+                    ).first()
+                    
+                    if exists:
+                        return {"status": "exists", "message": f"{symbol} already in watchlist"}
+                        
+                    item = Watchlist(
+                        agent_name=self.agent_name, 
+                        symbol=symbol, 
+                        reason=reason
+                    )
+                    db.add(item)
+                    db.commit()
+                    return {"status": "added", "symbol": symbol}
+                    
+                elif action == "remove":
+                    db.query(Watchlist).filter(
+                        Watchlist.agent_name == self.agent_name,
+                        Watchlist.symbol == symbol
+                    ).delete()
+                    db.commit()
+                    return {"status": "removed", "symbol": symbol}
+                    
+        except Exception as e:
+            return {"error": str(e)}
+            
+        return {"error": f"Unknown action: {action}"}
     
     async def search_twitter(self, query: str) -> Dict[str, Any]:
         """Search Twitter (Grok agent only)."""

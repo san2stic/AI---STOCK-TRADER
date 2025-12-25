@@ -644,6 +644,9 @@ Be brutally honest with yourself. Your future performance depends on this reflec
 📁 Positions:
 {json.dumps(portfolio.get('positions', []), indent=2)}
 
+━━━━━━━ YOUR WATCHLIST ━━━━━━━
+{json.dumps(self._get_agent_watchlist(), indent=2)}
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🧠 CHAIN-OF-THOUGHT REASONING PROCESS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -657,8 +660,9 @@ You MUST follow this structured reasoning process:
 
 **STEP 2: OPPORTUNITY SCANNING** 🎯
   └─ What opportunities exist in my preferred sectors?
+  └─ Check my WATCHLIST for setups I'm tracking.
   └─ Which stocks/crypto show interesting technical setups?
-  └─ Use: get_available_stocks, compare_stocks, get_advanced_indicators
+  └─ Use: get_available_stocks, compare_stocks, get_advanced_indicators, manage_watchlist
 
 **STEP 3: DEEP ANALYSIS** 📊
   └─ For top 2-3 candidates, perform detailed technical analysis
@@ -688,6 +692,19 @@ You MUST follow this structured reasoning process:
 Now, begin your Chain-of-Thought analysis:
 """
         return context
+    
+    def _get_agent_watchlist(self) -> List[Dict[str, Any]]:
+        """Get agent's current watchlist."""
+        try:
+            with get_db() as db:
+                from models.database import Watchlist
+                items = db.query(Watchlist).filter(
+                    Watchlist.agent_name == self.name
+                ).all()
+                return [{"symbol": i.symbol, "reason": i.reason} for i in items]
+        except Exception as e:
+            logger.warning("failed_to_get_watchlist", error=str(e))
+            return []
     
     def _determine_action(self, tool_calls: List[Dict]) -> str:
         """Determine the final action from tool calls."""

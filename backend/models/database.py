@@ -210,3 +210,18 @@ class SystemLog(Base):
         Index("idx_level_created", "level", "created_at"),
         Index("idx_component_created", "component", "created_at"),
     )
+
+
+class Watchlist(Base):
+    """User or Agent defined watchlist for tracking specific assets."""
+    __tablename__ = "watchlist"
+
+    id = Column(Integer, primary_key=True, index=True)
+    agent_name = Column(String(50), nullable=False, index=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    reason = Column(String(200), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("agent_name", "symbol", name="uq_agent_symbol"),
+    )
