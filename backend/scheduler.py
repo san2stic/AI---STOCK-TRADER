@@ -881,16 +881,35 @@ def start_scheduler(ws_manager=None) -> AsyncIOScheduler:
         id="daily_report",
     )
     
-    scheduler.start()
-    
-    # Position analysis cycle every hour (runs independently of trading cycle)
+    # Position analysis cycle (runs independently of trading cycle)
     position_interval = getattr(settings, 'position_analysis_interval_minutes', 60)
     
-    scheduler.add_job(
-        orchestrator.run_position_analysis,
-        CronTrigger(minute=f"*/{position_interval}", timezone="UTC"),
-        id="position_analysis",
-    )
+    # Handle intervals >= 60 minutes (use hours instead of minutes)
+    if position_interval >= 60:
+        hours = position_interval // 60
+        # Use hourly cron expression (e.g., every 1 hour = minute=0)
+        scheduler.add_job(
+            orchestrator.run_position_analysis,
+            CronTrigger(minute=0, hour=f"*/{hours}", timezone="UTC"),
+            id="position_analysis",
+        )
+        logger.info(
+            "position_analysis_scheduled_hourly",
+            interval_hours=hours,
+        )
+    else:
+        # Use minute-based interval for < 60 minutes
+        scheduler.add_job(
+            orchestrator.run_position_analysis,
+            CronTrigger(minute=f"*/{position_interval}", timezone="UTC"),
+            id="position_analysis",
+        )
+        logger.info(
+            "position_analysis_scheduled_minutes",
+            interval_minutes=position_interval,
+        )
+    
+    scheduler.start()
     
     logger.info(
         "scheduler_started", 
