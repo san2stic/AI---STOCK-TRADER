@@ -35,6 +35,7 @@ class BinanceConnector:
         self.testnet = settings.binance_testnet
         self.connected = False
         self.client = None
+        self.data_client = None  # Always Production for reliable data
         self._connection_attempts = 0
         
     @retry(
@@ -45,7 +46,7 @@ class BinanceConnector:
     async def connect(self) -> bool:
         """Establish connection to Binance API with retry logic."""
         if self.testnet:
-            logger.info("binance_testnet_mode", message="Connecting to Binance Testnet")
+            logger.info("binance_testnet_mode", message="Connecting to Binance Testnet (Execution) + Production (Data)")
         else:
             logger.info("binance_production_mode", message="Connecting to Binance Production")
         
@@ -53,7 +54,7 @@ class BinanceConnector:
             from binance.client import Client
             from binance.exceptions import BinanceAPIException
             
-            # Create client
+            # 1. Create EXECUTION client (Testnet or Prod based on config)
             if self.testnet:
                 self.client = Client(
                     self.api_key,
@@ -66,8 +67,15 @@ class BinanceConnector:
                     self.api_secret
                 )
             
-            # Test connection by getting account info
+            # 2. Create DATA client (Always Production for reliable market data)
+            # Anonymous client is sufficient for public data
+            self.data_client = Client(None, None)
+            
+            # Test connection by getting account info (Execution client)
             account = self.client.get_account()
+            
+            # Test data connection
+            self.data_client.ping()
             
             self.connected = True
             
@@ -215,7 +223,7 @@ class BinanceConnector:
                 await self.connect()
             
             # Get current ticker
-            ticker = self.client.get_ticker(symbol=symbol)
+            ticker = self.data_client.get_ticker(symbol=symbol)
             
             # Get 24h price change
             current_price = float(ticker['lastPrice'])
@@ -298,7 +306,7 @@ class BinanceConnector:
                     symbol = f"{balance['asset']}USDT"
                     
                     try:
-                        ticker = self.client.get_ticker(symbol=symbol)
+                        ticker = self.data_client.get_ticker(symbol=symbol)
                         current_price = float(ticker['lastPrice'])
                         market_value = total * current_price
                         
@@ -354,10 +362,10 @@ class BinanceConnector:
                 await self.connect()
             
             if symbol:
-                info = self.client.get_symbol_info(symbol)
+                info = self.data_client.get_symbol_info(symbol)
                 return info
             else:
-                info = self.client.get_exchange_info()
+                info = self.data_client.get_exchange_info()
                 return info
             
         except Exception as e:
@@ -370,7 +378,7 @@ class BinanceConnector:
             if not self.connected:
                 await self.connect()
             
-            exchange_info = self.client.get_exchange_info()
+            exchange_info = self.data_client.get_exchange_info()
             
             tradable_pairs = []
             for symbol_info in exchange_info['symbols']:
@@ -410,7 +418,8 @@ class BinanceConnector:
             
             # Use Binance Futures API for funding rates
             # This is a public endpoint, no API key required
-            base_url = "https://fapi.binance.com" if not self.testnet else "https://testnet.binancefuture.com"
+            # ALWAYS use Production for data analysis to ensure accurate sentiment
+            base_url = "https://fapi.binance.com"
             
             async with httpx.AsyncClient(timeout=15.0) as client:
                 # Get current funding rate
@@ -482,7 +491,7 @@ class BinanceConnector:
                 await self.connect()
             
             # Get order book
-            order_book = self.client.get_order_book(symbol=symbol, limit=depth)
+            order_book = self.data_client.get_order_book(symbol=symbol, limit=depth)
             
             bids = order_book.get("bids", [])
             asks = order_book.get("asks", [])

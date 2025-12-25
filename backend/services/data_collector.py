@@ -245,15 +245,18 @@ class DataCollector:
         hours: int
     ) -> Optional[Any]:
         """Get data from cache if not expired."""
-        with get_db() as db:
-            cached = db.query(MarketData).filter(
-                MarketData.symbol == key.split("_")[1] if "_" in key else key,
-                MarketData.data_type == key.split("_")[0] if "_" in key else key,
-                MarketData.expires_at > datetime.utcnow(),
-            ).first()
-            
-            if cached:
-                return cached.data
+        try:
+            with get_db() as db:
+                cached = db.query(MarketData).filter(
+                    MarketData.symbol == key.split("_")[1] if "_" in key else key,
+                    MarketData.data_type == key.split("_")[0] if "_" in key else key,
+                    MarketData.expires_at > datetime.utcnow(),
+                ).first()
+                
+                if cached:
+                    return cached.data
+        except Exception as e:
+            logger.warning("cache_read_failed", key=key, error=str(e))
         
         return None
     
@@ -264,26 +267,30 @@ class DataCollector:
         hours: int
     ) -> None:
         """Save data to cache with expiration."""
-        parts = key.split("_", 1)
-        data_type = parts[0]
-        symbol = parts[1] if len(parts) > 1 else key
-        
-        with get_db() as db:
-            # Delete existing
-            db.query(MarketData).filter(
-                MarketData.symbol == symbol,
-                MarketData.data_type == data_type,
-            ).delete()
+        try:
+            parts = key.split("_", 1)
+            data_type = parts[0]
+            symbol = parts[1] if len(parts) > 1 else key
             
-            # Insert new
-            cache_entry = MarketData(
-                symbol=symbol,
-                data_type=data_type,
-                data=data,
-                expires_at=datetime.utcnow() + timedelta(hours=hours),
-            )
-            db.add(cache_entry)
-            db.commit()
+            with get_db() as db:
+                # Delete existing
+                db.query(MarketData).filter(
+                    MarketData.symbol == symbol,
+                    MarketData.data_type == data_type,
+                ).delete()
+                
+                # Insert new
+                cache_entry = MarketData(
+                    symbol=symbol,
+                    data_type=data_type,
+                    data=data,
+                    expires_at=datetime.utcnow() + timedelta(hours=hours),
+                )
+                db.add(cache_entry)
+                db.commit()
+        except Exception as e:
+            logger.warning("cache_write_failed", key=key, error=str(e))
+
     
     async def get_all_tradable_assets(
         self,

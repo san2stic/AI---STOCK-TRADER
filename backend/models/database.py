@@ -225,3 +225,17 @@ class Watchlist(Base):
     __table_args__ = (
         UniqueConstraint("agent_name", "symbol", name="uq_agent_symbol"),
     )
+
+
+class WebSearchResult(Base):
+    """Stored web search results for historical tracking."""
+    __tablename__ = "web_search_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    query = Column(String(255), nullable=False, index=True)
+    results = Column(JSON, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    __table_args__ = (
+        Index("idx_query_timestamp", "query", "timestamp"),
+    )

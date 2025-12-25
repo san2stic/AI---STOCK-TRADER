@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     twitter_api_secret: Optional[str] = None
     twitter_bearer_token: Optional[str] = None
     
+    # SerpAPI (Google Search)
+    serpapi_api_key: Optional[str] = None
+    
     # Database
     database_url: str
     

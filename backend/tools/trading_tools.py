@@ -843,21 +843,59 @@ class TradingTools:
         }
 
     async def search_web(self, query: str, max_results: int = 10) -> Dict[str, Any]:
-        """Search the web using DuckDuckGo."""
+        """Search the web using SerpAPI (Google) and store results."""
         try:
-            from duckduckgo_search import DDGS
+            from serpapi import GoogleSearch
+            from models.database import WebSearchResult
             
-            results = []
-            # Use sync DDGS in async context is okay for small requests.
-            # Use backend='html' to avoid rate limits on the API which are common in data center IPs.
-            with DDGS() as ddgs:
-                for r in ddgs.text(query, max_results=max_results, backend='html'):
-                    results.append(r)
+            # Check for API key
+            if not settings.serpapi_api_key:
+                return {"error": "SerpAPI key not configured in .env (SERPAPI_API_KEY)"}
+                
+            params = {
+                "q": query,
+                "api_key": settings.serpapi_api_key,
+                "num": max_results
+            }
             
+            # Execute search
+            # Note: GoogleSearch is synchronous, might block event loop briefly
+            # For heavy usage, run in executor
+            search = GoogleSearch(params)
+            results_dict = search.get_dict()
+            
+            organic_results = results_dict.get("organic_results", [])
+            
+            # Format results
+            formatted_results = []
+            for r in organic_results:
+                formatted_results.append({
+                    "title": r.get("title"),
+                    "link": r.get("link"),
+                    "snippet": r.get("snippet"),
+                    "date": r.get("date"),
+                    "source": r.get("source"),
+                    "position": r.get("position")
+                })
+            
+            # Store in DB (with error handling)
+            try:
+                with get_db() as db:
+                    search_record = WebSearchResult(
+                        query=query,
+                        results=formatted_results
+                    )
+                    db.add(search_record)
+                    db.commit()
+            except Exception as e:
+                logger.error("db_save_search_error", query=query, error=str(e))
+                
             return {
                 "query": query,
-                "results": results,
+                "count": len(formatted_results),
+                "results": formatted_results,
             }
+            
         except Exception as e:
             logger.error("web_search_failed", query=query, error=str(e))
             return {"error": f"Search failed: {str(e)}"}
