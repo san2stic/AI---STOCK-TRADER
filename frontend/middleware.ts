@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
     // Only handle /api/ routes
     if (request.nextUrl.pathname.startsWith('/api/')) {
         // Get the API URL from environment variables, fallback to localhost for dev
-        const apiUrl = process.env.API_URL || 'http://localhost:8000'
+        const apiUrl = process.env.API_URL || 'http://backend:8000'
 
         // Construct the target URL
         // Remove /api/ prefix if the backend doesn't expect it, or keep it if it does.

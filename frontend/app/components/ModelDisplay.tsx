@@ -22,7 +22,7 @@ export default function ModelDisplay() {
 
     const fetchModels = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
             const response = await fetch(`${apiUrl}/api/models/current`);
             if (!response.ok) throw new Error("Failed to fetch models");
             const data = await response.json();
@@ -38,7 +38,7 @@ export default function ModelDisplay() {
     const handleRefresh = async () => {
         setIsRefreshing(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
             await fetch(`${apiUrl}/api/models/refresh`, { method: "POST" });
             await fetchModels();
         } catch (err) {
