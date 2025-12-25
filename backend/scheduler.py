@@ -868,11 +868,31 @@ def start_scheduler(ws_manager=None) -> AsyncIOScheduler:
     # For simplicity, run hourly between 2:30 PM and 9:00 PM UTC (market hours EST)
     # Run 24/7 to support crypto trading
     # The orchestrator will check if stock markets are open and switch to crypto if not
-    scheduler.add_job(
-        orchestrator.run_trading_cycle,
-        CronTrigger(minute=f"*/{interval}", timezone="UTC"),
-        id="trading_cycle",
-    )
+    
+    # Handle intervals >= 60 minutes (use hours instead of minutes)
+    if interval >= 60:
+        hours = interval // 60
+        # Use hourly cron expression (e.g., every 4 hours = hour=*/4, minute=0)
+        scheduler.add_job(
+            orchestrator.run_trading_cycle,
+            CronTrigger(minute=0, hour=f"*/{hours}", timezone="UTC"),
+            id="trading_cycle",
+        )
+        logger.info(
+            "trading_cycle_scheduled_hourly",
+            interval_hours=hours,
+        )
+    else:
+        # Use minute-based interval for < 60 minutes
+        scheduler.add_job(
+            orchestrator.run_trading_cycle,
+            CronTrigger(minute=f"*/{interval}", timezone="UTC"),
+            id="trading_cycle",
+        )
+        logger.info(
+            "trading_cycle_scheduled_minutes",
+            interval_minutes=interval,
+        )
     
     # End of day report (9:00 PM UTC = 4:00 PM EST)
     scheduler.add_job(
