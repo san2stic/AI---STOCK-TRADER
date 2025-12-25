@@ -662,10 +662,23 @@ Present your devil's advocate argument now.
             if not other_positions:
                 continue
             
-            # Format other positions for evaluation
+            # Format other positions for evaluation (skip error positions)
+            valid_positions = {
+                name: pos for name, pos in other_positions.items()
+                if pos.get('action', '').lower() not in ['error', ''] and pos.get('reasoning')
+            }
+            
+            if not valid_positions:
+                logger.warning(
+                    "cross_critique_no_valid_positions",
+                    agent=agent.name,
+                    all_positions_count=len(other_positions),
+                )
+                continue
+            
             positions_text = "\n".join([
-                f"📊 {name}: {pos.get('action', 'HOLD').upper()} {pos.get('symbol', '')} (Reasoning: {pos.get('reasoning', 'N/A')[:200]}...)"
-                for name, pos in other_positions.items()
+                f"📊 {name}: {pos.get('action', 'HOLD').upper()} {pos.get('symbol', '')} (Reasoning: {(pos.get('reasoning') or 'N/A')[:200]}...)"
+                for name, pos in valid_positions.items()
             ])
             
             prompt = f"""
@@ -791,14 +804,43 @@ Be constructive and specific. Your critique helps improve overall decision quali
         market_context: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Get initial position from an agent."""
-        # Use agent's existing make_decision but extract position without executing
-        result = await agent.make_decision(market_context)
-        return {
-            "action": result.get("action", "hold"),
-            "symbol": result.get("symbol"),
-            "reasoning": result.get("reasoning", ""),
-            "confidence": 75,  # Default
-        }
+        try:
+            # Use agent's existing make_decision but extract position without executing
+            result = await agent.make_decision(market_context)
+            
+            # Handle error responses
+            if result.get("action") == "error":
+                error_msg = result.get("error", "Unknown error occurred")
+                logger.warning(
+                    "agent_position_returned_error",
+                    agent=agent.name,
+                    error=error_msg,
+                )
+                return {
+                    "action": "hold",
+                    "symbol": None,
+                    "reasoning": f"Agent encountered an error: {error_msg}. Defaulting to HOLD.",
+                    "confidence": 25,  # Low confidence due to error
+                }
+            
+            return {
+                "action": result.get("action", "hold"),
+                "symbol": result.get("symbol"),
+                "reasoning": result.get("reasoning") or "No detailed reasoning provided",
+                "confidence": 75,  # Default confidence
+            }
+        except Exception as e:
+            logger.error(
+                "agent_position_exception",
+                agent=agent.name,
+                error=str(e),
+            )
+            return {
+                "action": "hold",
+                "symbol": None,
+                "reasoning": f"Exception while getting position: {str(e)}. Defaulting to HOLD.",
+                "confidence": 10,  # Very low confidence due to exception
+            }
     
     async def _get_agent_response(
         self,
