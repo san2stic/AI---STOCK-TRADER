@@ -173,7 +173,7 @@ VALIDATE THIS ORDER:
 **PROPOSED TRADE:**
 - Action: {action.upper()}
 - Symbol: {symbol}
-- Quantity: {quantity} shares
+- Quantity: {quantity} shares (fractional shares allowed)
 - Consensus Score: {consensus_score:.1f}%
 - Mediator Used: {mediator_used}
 

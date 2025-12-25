@@ -18,7 +18,7 @@ class RiskManager:
         agent_name: str,
         symbol: str,
         action: str,
-        quantity: int,
+        quantity: float,
         price: float,
         portfolio: Portfolio,
     ) -> Dict[str, Any]:
@@ -157,7 +157,7 @@ class RiskManager:
             price: Current price per share/unit
             
         Returns:
-            {"max_quantity": int, "max_value": float, "portfolio_value": float, "reason": str}
+            {"max_quantity": float, "max_value": float, "portfolio_value": float, "reason": str}
         """
         if price <= 0:
             return {
@@ -212,11 +212,11 @@ class RiskManager:
         # Also can't spend more than available cash
         max_trade_value = min(max_trade_value, cash)
         
-        # Calculate max quantity (floor to ensure we don't exceed limit)
-        max_quantity = int(max_trade_value / price)
+        # Calculate max quantity (fractional shares supported)
+        max_quantity = max_trade_value / price
         
         # Ensure at least 0 (never negative)
-        max_quantity = max(0, max_quantity)
+        max_quantity = max(0.0, max_quantity)
         
         logger.info(
             "calculated_max_quantity",

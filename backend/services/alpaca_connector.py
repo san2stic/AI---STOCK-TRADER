@@ -92,7 +92,7 @@ class AlpacaConnector:
         self,
         symbol: str,
         action: str,
-        quantity: int,
+        quantity: float,
     ) -> Dict[str, Any]:
         """
         Place a market order.
@@ -100,7 +100,7 @@ class AlpacaConnector:
         Args:
             symbol: Stock symbol
             action: "BUY" or "SELL"
-            quantity: Number of shares
+            quantity: Number of shares (fractional shares supported)
             
         Returns:
             Execution result
@@ -151,7 +151,7 @@ class AlpacaConnector:
                         "status": "filled",
                         "symbol": symbol,
                         "action": action,
-                        "quantity": int(order.filled_qty),
+                        "quantity": float(order.filled_qty),
                         "price": fill_price,
                         "order_id": order.id,
                         "is_paper": settings.is_paper_trading(),
@@ -253,7 +253,7 @@ class AlpacaConnector:
             return [
                 {
                     "symbol": pos.symbol,
-                    "qty": int(pos.qty),
+                    "qty": float(pos.qty),
                     "side": pos.side,
                     "market_value": float(pos.market_value),
                     "cost_basis": float(pos.cost_basis),

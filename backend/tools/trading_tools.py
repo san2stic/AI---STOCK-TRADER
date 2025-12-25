@@ -1251,7 +1251,7 @@ class TradingTools:
             "results": formatted_results,
         }
     
-    async def buy_stock(self, symbol: str, quantity: int) -> Dict[str, Any]:
+    async def buy_stock(self, symbol: str, quantity: float) -> Dict[str, Any]:
         """Execute buy order."""
         from services.risk_manager import get_risk_manager
         from services.alpaca_connector import get_alpaca_connector
@@ -1373,7 +1373,7 @@ class TradingTools:
             else:
                 return {"error": f"Trade failed: {execution.get('error')}"}
     
-    async def sell_stock(self, symbol: str, quantity: int) -> Dict[str, Any]:
+    async def sell_stock(self, symbol: str, quantity: float) -> Dict[str, Any]:
         """Execute sell order."""
         from services.alpaca_connector import get_alpaca_connector
         
