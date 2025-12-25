@@ -849,9 +849,18 @@ class TradingOrchestrator:
         return " | ".join(recommendations) if recommendations else "All positions healthy. No action needed."
 
 
+# Global orchestrator instance for API access
+_orchestrator_instance = None
+
+def get_orchestrator():
+    """Get the current orchestrator instance."""
+    return _orchestrator_instance
+
 def start_scheduler(ws_manager=None) -> AsyncIOScheduler:
     """Start the trading scheduler."""
+    global _orchestrator_instance
     orchestrator = TradingOrchestrator(ws_manager)
+    _orchestrator_instance = orchestrator  # Store for API access
     scheduler = AsyncIOScheduler()
     
     # Pre-market warmup (9:25 AM EST = 2:25 PM UTC)

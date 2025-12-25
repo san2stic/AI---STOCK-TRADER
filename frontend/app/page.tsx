@@ -6,6 +6,7 @@ import Shell from './components/layout/Shell';
 import AgentCard from './components/dashboard/AgentCard';
 import RealTimeFunds from './components/dashboard/RealTimeFunds';
 import NextScanCountdown from './components/dashboard/NextScanCountdown';
+import ManualScanButton from './components/dashboard/ManualScanButton';
 import TradingModeControl from './components/dashboard/TradingModeControl';
 import StockCryptoSplit from './components/dashboard/StockCryptoSplit';
 import LiveScoreBoard from './components/dashboard/LiveScoreBoard';
@@ -179,9 +180,12 @@ export default function Home() {
                                     <RealTimeFunds />
                                 </ErrorBoundary>
                             </div>
-                            <div className="xl:col-span-1">
+                            <div className="xl:col-span-1 space-y-4">
                                 <ErrorBoundary>
                                     <NextScanCountdown />
+                                </ErrorBoundary>
+                                <ErrorBoundary>
+                                    <ManualScanButton />
                                 </ErrorBoundary>
                             </div>
                         </div>

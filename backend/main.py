@@ -642,6 +642,34 @@ async def get_next_scan_info():
     }
 
 
+@app.post("/api/scan/trigger")
+async def trigger_manual_scan():
+    """Manually trigger an immediate position analysis scan."""
+    from scheduler import get_orchestrator
+    
+    orchestrator = get_orchestrator()
+    
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="Trading system not initialized")
+    
+    try:
+        logger.info("manual_scan_triggered")
+        
+        # Run position analysis immediately
+        await orchestrator.run_position_analysis()
+        
+        logger.info("manual_scan_completed")
+        
+        return {
+            "status": "success",
+            "message": "Manual scan completed successfully",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error("manual_scan_error", error=str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates."""
