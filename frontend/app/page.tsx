@@ -9,6 +9,7 @@ import PerformanceCharts from './components/PerformanceCharts';
 import CrewDashboard from './components/CrewDashboard';
 import RealTimeFunds from './components/RealTimeFunds';
 import LiveScoreBoard from './components/LiveScoreBoard';
+import TradingModeControl from './components/TradingModeControl';
 import StockCryptoSplit from './components/StockCryptoSplit';
 import EconomicCalendar from './components/EconomicCalendar';
 import EconomicCalendarAnalysis from './components/EconomicCalendarAnalysis';
@@ -180,6 +181,9 @@ export default function Home() {
                         <div className="space-y-8">
                             {/* Live ScoreBoard */}
                             <LiveScoreBoard agents={agents} />
+
+                            {/* Global Trading Mode Control */}
+                            <TradingModeControl />
 
                             {/* Stock/Crypto Split */}
                             <StockCryptoSplit />

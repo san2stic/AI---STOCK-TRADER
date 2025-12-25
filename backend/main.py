@@ -467,6 +467,36 @@ async def get_performance_breakdown():
         }
 
 
+@app.get("/api/settings/trading-mode")
+async def get_trading_mode_setting():
+    """Get current trading mode setting."""
+    return {
+        "mode": settings.trading_asset_type_override or "AUTO",
+        "active_market": settings.trading_asset_type_override or "AUTO"  # Simplified
+    }
+
+
+from pydantic import BaseModel
+
+class TradingModeUpdate(BaseModel):
+    mode: str  # AUTO, STOCK, CRYPTO
+
+@app.post("/api/settings/trading-mode")
+async def set_trading_mode_setting(update: TradingModeUpdate):
+    """Set trading mode (AUTO, STOCK, CRYPTO)."""
+    mode = update.mode.upper()
+    if mode not in ["AUTO", "STOCK", "CRYPTO"]:
+        raise HTTPException(status_code=400, detail="Invalid mode. Must be AUTO, STOCK, or CRYPTO")
+    
+    if mode == "AUTO":
+        settings.trading_asset_type_override = None
+    else:
+        settings.trading_asset_type_override = mode
+        
+    logger.info("trading_mode_updated", new_mode=mode)
+    return {"status": "success", "mode": mode}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates."""

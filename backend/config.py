@@ -56,7 +56,8 @@ class Settings(BaseSettings):
     allowed_crypto_pairs: str = ""  # Optional whitelist, empty = all available pairs
     
     # Market configuration
-    
+    trading_asset_type_override: Optional[str] = None  # None (AUTO), STOCK, or CRYPTO
+
     # Multi-market configuration
     us_market_open_hour: int = 9
     us_market_open_minute: int = 30

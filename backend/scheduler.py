@@ -641,6 +641,11 @@ class TradingOrchestrator:
         Returns "STOCK" if stock markets are open, "CRYPTO" if closed.
         Crypto markets trade 24/7.
         """
+        # Check for manual override first
+        if settings.trading_asset_type_override:
+            logger.info("using_manual_market_override", mode=settings.trading_asset_type_override)
+            return settings.trading_asset_type_override
+            
         # Check if crypto trading is enabled
         if not settings.crypto_enabled:
             return "STOCK"
