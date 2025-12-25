@@ -23,7 +23,7 @@ MODEL_CATEGORIES = {
             "preferred_providers": ["anthropic", "openai", "deepseek", "x-ai"],
             "keywords": ["reasoning", "analysis", "financial", "thinking"],
         },
-        "fallback": "anthropic/claude-sonnet-4.5",
+        "fallback": "anthropic/claude-3.5-sonnet",
     },
     "data_analysis": {
         "description": "Best models for data processing and statistical analysis",
@@ -33,7 +33,7 @@ MODEL_CATEGORIES = {
             "preferred_providers": ["anthropic", "openai", "google", "deepseek"],
             "keywords": ["data", "analysis", "reasoning", "math"],
         },
-        "fallback": "deepseek/deepseek-r1",
+        "fallback": "deepseek/deepseek-chat",
     },
     "general": {
         "description": "General purpose models for various tasks",
@@ -43,7 +43,7 @@ MODEL_CATEGORIES = {
             "preferred_providers": ["openai", "anthropic", "mistralai"],
             "keywords": [],
         },
-        "fallback": "openai/gpt-4-turbo",
+        "fallback": "openai/gpt-4o",
     },
     "parsing": {
         "description": "Models optimized for parsing and structured output",

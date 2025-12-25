@@ -99,13 +99,13 @@ class Settings(BaseSettings):
     crew_deliberation_rounds: int = Field(default=2, ge=1, le=3)
     crew_min_consensus_percent: float = Field(default=66.0, ge=50.0, le=100.0)
     crew_enable_mediator: bool = True
-    crew_mediator_model: str = "openai/gpt-5-mini"
+    crew_mediator_model: str = "openai/gpt-4o-mini"
     crew_vote_weighting: str = "PERFORMANCE_BASED"
     crew_max_messages_per_round: int = Field(default=3, ge=1, le=10)
     
     # Order execution validator
     enable_order_validation: bool = True
-    order_validator_model: str = "anthropic/claude-sonnet-4.5"
+    order_validator_model: str = "anthropic/claude-3.5-sonnet"
     
     # Intelligent decision parsing (using Claude 4.5 Sonnet)
     enable_intelligent_parsing: bool = True
@@ -114,7 +114,7 @@ class Settings(BaseSettings):
     parsing_fallback_to_regex: bool = True
     
     # Dynamic model selection
-    enable_dynamic_models: bool = True  # Use OpenRouter to select best models
+    enable_dynamic_models: bool = False  # Use fixed models by default
     model_selection_strategy: str = "performance"  # performance or cost_effective
     model_cache_hours: int = Field(default=1, ge=1, le=24)  # Hours to cache model selection
     
@@ -181,7 +181,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", 
         case_sensitive=False,
-        protected_namespaces=('settings_',)
+        protected_namespaces=('settings_',),
+        extra='ignore'
     )
 
 
@@ -189,7 +190,7 @@ class Settings(BaseSettings):
 AGENT_CONFIGS = {
     "gpt4": {
         "name": "GPT-4 Holder",
-        "model": "openai/gpt-5.2",
+        "model": "openai/gpt-4o",
         "personality": "Conservative long-term investor",
         "strategy": "Buy & Hold",
         "risk_tolerance": "Medium",
@@ -203,7 +204,7 @@ AGENT_CONFIGS = {
     },
     "claude": {
         "name": "Claude Équilibré",
-        "model": "anthropic/claude-sonnet-4.5",
+        "model": "anthropic/claude-3.5-sonnet",
         "personality": "Prudent diversified portfolio manager",
         "strategy": "Diversification",
         "risk_tolerance": "Low-Medium",
@@ -217,7 +218,7 @@ AGENT_CONFIGS = {
     },
     "grok": {
         "name": "Grok Sniper",
-        "model": "x-ai/grok-4",
+        "model": "x-ai/grok-2-1212",
         "personality": "Aggressive opportunistic trader",
         "strategy": "Momentum & Catalysts",
         "risk_tolerance": "High",
@@ -232,7 +233,7 @@ AGENT_CONFIGS = {
     },
     "gemini": {
         "name": "Gemini Gestionnaire",
-        "model": "google/gemini-3-pro-preview",
+        "model": "google/gemini-pro-1.5",
         "personality": "Risk-averse capital preserver",
         "strategy": "Risk Management",
         "risk_tolerance": "Low",
@@ -246,7 +247,7 @@ AGENT_CONFIGS = {
     },
     "deepseek": {
         "name": "DeepSeek Nerveux",
-        "model": "deepseek/deepseek-r1",
+        "model": "deepseek/deepseek-chat",
         "personality": "Reactive momentum chaser",
         "strategy": "Sector Rotation",
         "risk_tolerance": "Medium-High",
@@ -259,7 +260,7 @@ AGENT_CONFIGS = {
     },
     "mistral": {
         "name": "Mistral Marine",
-        "model": "mistralai/mistral-large",
+        "model": "mistralai/mistral-large-2411",
         "personality": "Persistent active trader with fallbacks",
         "strategy": "Active Trading",
         "risk_tolerance": "Medium",
