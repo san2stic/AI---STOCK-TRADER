@@ -8,10 +8,8 @@ from sqlalchemy import (
     Column, Integer, String, Float, DateTime, Boolean, 
     Text, Enum, ForeignKey, Index
 )
-from sqlalchemy.ext.declarative import declarative_base
+from models.base import Base
 import enum
-
-Base = declarative_base()
 
 
 class OutcomeCategory(str, enum.Enum):

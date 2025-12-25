@@ -8,13 +8,14 @@ from sqlalchemy import (
     Column, Integer, String, Float, DateTime, Boolean, 
     Text, JSON, Enum, ForeignKey, Index, UniqueConstraint
 )
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import enum
 
-Base = declarative_base()
+from models.base import Base
 
 # Import learning models to register them with SQLAlchemy
+# We use string references in relationships to avoid circular imports if needed, 
+# but simply importing them here registers them with Base.metadata
 from models.trade_outcome import TradeOutcome, OutcomeCategory, ErrorClassification
 from models.error_pattern import ErrorPattern
 from models.strategy_performance import StrategyPerformance
