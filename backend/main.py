@@ -367,107 +367,148 @@ async def trigger_reflection(agent_name: str):
 
 @app.get("/api/funds/realtime")
 async def get_realtime_funds():
-    """Get real-time funds information across all agents."""
-    from services.data_collector import get_data_collector
+    """Get real-time funds information from actual Alpaca and Binance account balances."""
+    from services.alpaca_connector import get_alpaca_connector
     from services.binance_connector import get_binance_connector
     
-    collector = get_data_collector()
+    alpaca = get_alpaca_connector()
     binance = get_binance_connector()
     
-    with get_db() as db:
-        portfolios = db.query(Portfolio).all()
+    # Fetch real account info from APIs
+    try:
+        # Get Alpaca account info (stocks)
+        alpaca_account = await alpaca.get_account_info()
+        alpaca_positions = await alpaca.get_positions()
         
-        # Initialize totals
-        total_cash = 0
-        total_stock_value = 0
-        total_crypto_value = 0
-        total_initial = 0
-        agents_funds = []
+        # Get Binance account info (crypto)
+        binance_account = await binance.get_account_info()
+        binance_positions = await binance.get_positions()
         
-        # Calculate real-time values for each portfolio
-        for portfolio in portfolios:
-            positions = portfolio.positions or {}
-            stock_value = 0
-            crypto_value = 0
-            
-            # Calculate current value of each position
-            for symbol, pos in positions.items():
-                quantity = pos.get("quantity", 0)
-                asset_type = pos.get("asset_type", "STOCK")
-                
-                try:
-                    if asset_type == "CRYPTO":
-                        # Get current crypto price from Binance
-                        price_data = await binance.get_crypto_price(symbol)
-                        current_price = price_data.get("price") if price_data else pos.get("avg_price", 0)
-                        crypto_value += current_price * quantity
-                    else:
-                        # Get current stock price from Alpaca
-                        price_data = await collector.get_current_price(symbol)
-                        current_price = price_data.get("price", pos.get("avg_price", 0))
-                        stock_value += current_price * quantity
-                except Exception as e:
-                    logger.warning("price_fetch_error", symbol=symbol, error=str(e))
-                    # Fallback to average price if current price unavailable
-                    avg_price = pos.get("avg_price", 0)
-                    if asset_type == "CRYPTO":
-                        crypto_value += avg_price * quantity
-                    else:
-                        stock_value += avg_price * quantity
-            
-            # Calculate portfolio metrics
-            total_value = portfolio.cash + stock_value + crypto_value
-            total_pnl = total_value - portfolio.initial_value
-            total_pnl_percent = ((total_value - portfolio.initial_value) / portfolio.initial_value * 100) if portfolio.initial_value > 0 else 0
-            
-            # Update portfolio in database with real-time values
-            portfolio.stock_value = stock_value
-            portfolio.crypto_value = crypto_value
-            portfolio.total_value = total_value
-            portfolio.total_pnl = total_pnl
-            portfolio.total_pnl_percent = total_pnl_percent
-            
-            # Add to totals
-            total_cash += portfolio.cash
-            total_stock_value += stock_value
-            total_crypto_value += crypto_value
-            total_initial += portfolio.initial_value
-            
-            # Add to response
-            agents_funds.append({
-                "agent_name": portfolio.agent_name,
-                "cash": portfolio.cash,
-                "total_value": total_value,
-                "stock_value": stock_value,
-                "crypto_value": crypto_value,
-                "pnl": total_pnl,
-                "pnl_percent": total_pnl_percent,
-                "positions_count": len(positions),
-            })
+        # Calculate stock values from Alpaca
+        stock_cash = alpaca_account.get("cash", 0) if alpaca_account else 0
+        stock_equity = alpaca_account.get("equity", 0) if alpaca_account else 0
+        stock_value = stock_equity - stock_cash  # Equity - Cash = Position Value
         
-        # Commit updated portfolio values
-        db.commit()
+        # Calculate crypto values from Binance
+        crypto_usdt = 0
+        crypto_value = 0
         
-        # Calculate overall metrics
-        total_value = total_cash + total_stock_value + total_crypto_value
+        if binance_account and binance_account.get("balances"):
+            # Get USDT balance (cash equivalent)
+            usdt_balance = binance_account["balances"].get("USDT", {})
+            crypto_usdt = usdt_balance.get("free", 0) + usdt_balance.get("locked", 0)
+            
+            # Calculate total crypto position value
+            for position in binance_positions:
+                if position.get("market_value"):
+                    crypto_value += position["market_value"]
+        
+        # Calculate totals
+        total_cash = stock_cash + crypto_usdt
+        total_stock_value = stock_value
+        total_crypto_value = crypto_value
+        total_value = stock_equity + crypto_usdt + crypto_value
+        
+        # Get initial capital from database for P&L calculation
+        with get_db() as db:
+            portfolios = db.query(Portfolio).all()
+            total_initial = sum(p.initial_value for p in portfolios)
+        
+        # Calculate P&L
         total_pnl = total_value - total_initial
         total_pnl_percent = ((total_value - total_initial) / total_initial * 100) if total_initial > 0 else 0
-        total_positions = sum(len(p.positions or {}) for p in portfolios)
+        
+        # Count positions
+        total_positions = len(alpaca_positions) + len(binance_positions)
+        
+        # Build detailed response
+        agents_funds = []
+        
+        # For simplicity, we'll aggregate all real balances into a single "System" entry
+        # In a multi-agent system, you'd need to map positions to specific agents
+        agents_funds.append({
+            "agent_name": "Combined Real Account",
+            "cash": total_cash,
+            "total_value": total_value,
+            "stock_value": total_stock_value,
+            "crypto_value": total_crypto_value,
+            "pnl": total_pnl,
+            "pnl_percent": total_pnl_percent,
+            "positions_count": total_positions,
+        })
         
         return {
             "timestamp": datetime.utcnow().isoformat(),
             "totals": {
-                "cash": total_cash,
-                "total_value": total_value,
-                "stock_value": total_stock_value,
-                "crypto_value": total_crypto_value,
-                "pnl": total_pnl,
-                "pnl_percent": total_pnl_percent,
+                "cash": round(total_cash, 2),
+                "total_value": round(total_value, 2),
+                "stock_value": round(total_stock_value, 2),
+                "crypto_value": round(total_crypto_value, 2),
+                "pnl": round(total_pnl, 2),
+                "pnl_percent": round(total_pnl_percent, 2),
                 "positions_count": total_positions,
                 "initial_capital": total_initial,
             },
             "agents": agents_funds,
+            "data_source": "live_api",  # Indicate this is from real APIs
+            "alpaca_account": {
+                "cash": round(stock_cash, 2),
+                "equity": round(stock_equity, 2),
+                "positions_count": len(alpaca_positions),
+            } if alpaca_account else None,
+            "binance_account": {
+                "usdt_balance": round(crypto_usdt, 2),
+                "crypto_value": round(crypto_value, 2),
+                "positions_count": len(binance_positions),
+            } if binance_account else None,
         }
+        
+    except Exception as e:
+        logger.error("realtime_funds_fetch_error", error=str(e), exc_info=True)
+        
+        # Fallback to database values if API fails
+        with get_db() as db:
+            portfolios = db.query(Portfolio).all()
+            
+            total_cash = sum(p.cash for p in portfolios)
+            total_value = sum(p.total_value for p in portfolios)
+            total_stock_value = sum(p.stock_value or 0 for p in portfolios)
+            total_crypto_value = sum(p.crypto_value or 0 for p in portfolios)
+            total_pnl = sum(p.total_pnl for p in portfolios)
+            total_initial = sum(p.initial_value for p in portfolios)
+            total_pnl_percent = ((total_value - total_initial) / total_initial * 100) if total_initial > 0 else 0
+            total_positions = sum(len(p.positions or {}) for p in portfolios)
+            
+            agents_funds = [
+                {
+                    "agent_name": portfolio.agent_name,
+                    "cash": portfolio.cash,
+                    "total_value": portfolio.total_value,
+                    "stock_value": portfolio.stock_value or 0,
+                    "crypto_value": portfolio.crypto_value or 0,
+                    "pnl": portfolio.total_pnl,
+                    "pnl_percent": portfolio.total_pnl_percent,
+                    "positions_count": len(portfolio.positions or {}),
+                }
+                for portfolio in portfolios
+            ]
+            
+            return {
+                "timestamp": datetime.utcnow().isoformat(),
+                "totals": {
+                    "cash": total_cash,
+                    "total_value": total_value,
+                    "stock_value": total_stock_value,
+                    "crypto_value": total_crypto_value,
+                    "pnl": total_pnl,
+                    "pnl_percent": total_pnl_percent,
+                    "positions_count": total_positions,
+                    "initial_capital": total_initial,
+                },
+                "agents": agents_funds,
+                "data_source": "database_fallback",
+                "error": str(e),
+            }
 
 
 @app.get("/api/performance/breakdown")
