@@ -1658,15 +1658,18 @@ class TradingTools:
         min_impact: str = "MEDIUM"
     ) -> Dict[str, Any]:
         """Get upcoming economic events with market impact assessment."""
-        from services.economic_calendar import get_economic_calendar, EventImpact
-        
-        calendar = get_economic_calendar(
-            api_key=settings.economic_calendar_api_key if hasattr(settings, 'economic_calendar_api_key') else None
-        )
-        
         try:
+            from services.economic_calendar import get_economic_calendar, EventImpact
+            
+            calendar = get_economic_calendar(
+                api_key=settings.economic_calendar_api_key if hasattr(settings, 'economic_calendar_api_key') else None
+            )
+            
             # Convert string to EventImpact enum
-            impact_level = EventImpact(min_impact.upper())
+            try:
+                impact_level = EventImpact(min_impact.upper())
+            except ValueError:
+                impact_level = EventImpact.MEDIUM
             
             # Get upcoming events
             events = await calendar.get_upcoming_events(
@@ -1689,7 +1692,83 @@ class TradingTools:
                 "get_economic_events_error",
                 error=str(e)
             )
-            return {"error": str(e)}
+            
+            # Fallback: Use simple estimation logic if service fails
+            logger.info("using_fallback_economic_events")
+            fallback_events = self._get_fallback_economic_events(days_ahead, min_impact)
+            
+            return {
+                "events": fallback_events,
+                "count": len(fallback_events),
+                "high_impact_today": any(e.get("impact") == "HIGH" and e.get("date") == datetime.now().date().isoformat() for e in fallback_events),
+                "days_ahead": days_ahead,
+                "min_impact": min_impact,
+                "note": "Data from fallback estimation (service unavailable)"
+            }
+
+    def _get_fallback_economic_events(self, days_ahead: int, min_impact: str) -> List[Dict]:
+        """Fallback estimation of economic events when service is unavailable."""
+        from datetime import date, timedelta
+        
+        today = date.today()
+        events = []
+        min_impact = min_impact.upper()
+        
+        # Helper to check if date in range
+        def in_range(d):
+            return 0 <= (d - today).days <= days_ahead
+            
+        def get_first_friday(year, month):
+            d = date(year, month, 1)
+            while d.weekday() != 4:  # 4 is Friday
+                d += timedelta(days=1)
+            return d
+            
+        # NFP (First Friday)
+        # Check current and next month
+        for m_offset in [0, 1]:
+            m = today.month + m_offset
+            y = today.year
+            if m > 12:
+                m -= 12
+                y += 1
+            
+            nfp_date = get_first_friday(y, m)
+            if in_range(nfp_date):
+                events.append({
+                    "date": nfp_date.isoformat(),
+                    "name": "Non-Farm Payroll (NFP)",
+                    "impact": "HIGH",
+                    "description": "Estimated NFP date"
+                })
+        
+        # CPI (13th of month approx)
+        for m_offset in [0, 1]:
+            m = today.month + m_offset
+            y = today.year
+            if m > 12:
+                m -= 12
+                y += 1
+            
+            try:
+                cpi_date = date(y, m, 13)
+                if in_range(cpi_date):
+                    events.append({
+                        "date": cpi_date.isoformat(),
+                        "name": "Consumer Price Index (CPI)",
+                        "impact": "HIGH",
+                        "description": "Estimated CPI date"
+                    })
+            except ValueError: pass
+            
+        # Filter by impact
+        impact_score = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
+        min_score = impact_score.get(min_impact, 2)
+        
+        filtered = [e for e in events if impact_score.get(e["impact"], 1) >= min_score]
+        filtered.sort(key=lambda x: x["date"])
+        
+        return filtered
     
     # ========== NEW ADVANCED INTELLIGENCE TOOLS ==========
     
@@ -1762,18 +1841,20 @@ class TradingTools:
         symbol: str = "SPY"
     ) -> Dict[str, Any]:
         """Detect current market regime (bull/bear/sideways)."""
-        from services.advanced_indicators import get_advanced_indicators
-        
         symbol = symbol.upper()
-        indicators = get_advanced_indicators()
         
         try:
+            from services.advanced_indicators import get_advanced_indicators
+            indicators = get_advanced_indicators()
+            
             result = await indicators.get_all_advanced_indicators(
                 symbol=symbol,
                 include_multi_timeframe=True
             )
             
             if "error" in result:
+                # If advanced indicators fail, try a simpler fallback if possible
+                # e.g. using get_stock_price directly if get_data_collector works
                 return result
             
             # Extract regime from trend analysis
@@ -1809,7 +1890,7 @@ class TradingTools:
                 symbol=symbol,
                 error=str(e)
             )
-            return {"error": str(e)}
+            return {"error": f"Market regime analysis unavailable: {str(e)}"}
     
     async def get_crypto_funding_rates(
         self,
