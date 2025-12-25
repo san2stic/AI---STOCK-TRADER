@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     initial_capital: float = Field(default=10000.0, ge=100.0)
     
     # Google AI Studio (Gemini API)
-    google_ai_api_key: str = Field(..., alias="GOOGLE_AI_API_KEY")
+    google_ai_api_key: str = ""
     gemini_model: str = "gemini-3-pro-preview"  # Default Gemini model
     
     # Alpaca Markets (Free API)
@@ -158,6 +158,14 @@ class Settings(BaseSettings):
         if v.upper() not in valid_levels:
             raise ValueError(f"log_level must be one of {valid_levels}")
         return v.upper()
+        
+    @validator("google_ai_api_key", pre=True, always=True)
+    def validate_google_api_key(cls, v):
+        """Fallback to checking environment variable directly."""
+        if not v:
+            import os
+            return os.getenv("GOOGLE_AI_API_KEY", "")
+        return v
     
     def get_allowed_symbols(self) -> List[str]:
         """Parse allowed symbols into a list."""
