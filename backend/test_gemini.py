@@ -28,6 +28,7 @@ async def test_gemini():
     
     # List of models to try
     models_to_test = [
+        "gemini-3-pro-preview",
         "gemini-3-flash-preview",
         "gemini-2.0-flash-exp",
     ]

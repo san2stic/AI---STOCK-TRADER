@@ -22,7 +22,7 @@ class EconomicCalendarAnalyzer:
         Args:
             model: Model to use (mapped to Gemini)
         """
-        self.model = "gemini-3-flash-preview"  # Force use of Gemini model
+        self.model = "gemini-3-pro-preview"  # Force use of Gemini model
         self.client = get_gemini_client()
         self.calendar = get_economic_calendar()
         self.cache: Optional[Dict[str, Any]] = None

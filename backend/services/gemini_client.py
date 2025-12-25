@@ -27,6 +27,10 @@ class GeminiClient:
         # Mapping from generic names to Google AI Studio Model IDs
         self.model_mapping = {
             # Gemini 3 (Preview)
+            "google/gemini-3-pro-preview": "gemini-3-pro-preview",
+            "gemini-3-pro-preview": "gemini-3-pro-preview",
+            "models/gemini-3-pro-preview": "gemini-3-pro-preview",
+            
             "google/gemini-3-flash-preview": "gemini-3-flash-preview",
             "gemini-3-flash-preview": "gemini-3-flash-preview",
             "models/gemini-3-flash-preview": "gemini-3-flash-preview",

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     
     # Google AI Studio (Gemini API)
     google_ai_api_key: str = ""
-    gemini_model: str = "gemini-3-flash-preview"  # Default Gemini model
+    gemini_model: str = "gemini-3-pro-preview"  # Default Gemini model
     
     # Alpaca Markets (Free API)
     alpaca_api_key: str

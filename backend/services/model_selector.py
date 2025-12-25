@@ -65,6 +65,7 @@ STATIC_CANDIDATES = [
     "openai/gpt-4o",
     "deepseek/deepseek-chat",     # DeepSeek V3
     "x-ai/grok-2-1212",
+    "gemini-3-pro-preview",
     "gemini-3-flash-preview",
     "google/gemini-2.0-flash-exp",
     "google/gemini-pro-1.5",
@@ -77,7 +78,7 @@ STATIC_CANDIDATES = [
 class ModelSelector:
     """
     Intelligent model selection (Simplified for Google AI Studio migration).
-    Now serves static configuration forcing Gemini 3.0 Flash for all tasks.
+    Now serves static configuration forcing Gemini 3.0 Pro for all tasks.
     """
     
     def __init__(self):
@@ -86,8 +87,8 @@ class ModelSelector:
     async def get_available_models(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """Return static list containing only the Gemini model."""
         return [{
-            "id": "gemini-3-flash-preview",
-            "name": "Gemini 3.0 Flash (Preview)",
+            "id": "gemini-3-pro-preview",
+            "name": "Gemini 3.0 Pro (Preview)",
             "description": "High-performance model via Google AI Studio Key",
             "context_length": 1000000,
             "pricing": {"prompt": "0", "completion": "0"}
@@ -105,7 +106,7 @@ class ModelSelector:
         For Google AI Studio migration, this returns the same model for everything.
         """
         # Force unified model for all categories to Gemini 3.0
-        unified_model = "gemini-3-flash-preview"
+        unified_model = "gemini-3-pro-preview"
         return {cat: unified_model for cat in MODEL_CATEGORIES}
     
     def _select_for_category(
@@ -115,7 +116,7 @@ class ModelSelector:
         requirements: Dict[str, Any],
     ) -> str:
         """Select best model for a specific category."""
-        return "gemini-3-flash-preview"
+        return "gemini-3-pro-preview"
     
     async def get_model_info(self, model_id: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a specific model."""
@@ -123,7 +124,7 @@ class ModelSelector:
         if "gemini" in model_id.lower():
              return {
                 "id": model_id,
-                "name": "Gemini 3.0 Flash (Preview)",
+                "name": "Gemini 3.0 Pro (Preview)",
                 "context_length": 1000000,
              }
         return None
