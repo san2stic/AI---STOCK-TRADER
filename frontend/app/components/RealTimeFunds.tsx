@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Wallet, PieChart, Zap } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Wallet, PieChart, Activity } from 'lucide-react';
 
 interface FundsData {
     timestamp: string;
@@ -48,13 +48,12 @@ export default function RealTimeFunds() {
 
     if (loading || !funds) {
         return (
-            <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
-                <div className="animate-pulse flex items-center gap-4">
-                    <div className="h-12 w-12 bg-white/20 rounded-full"></div>
-                    <div className="flex-1">
-                        <div className="h-6 bg-white/20 rounded w-1/3 mb-2"></div>
-                        <div className="h-8 bg-white/20 rounded w-1/2"></div>
-                    </div>
+            <div className="glass-panel p-8 rounded-3xl animate-pulse">
+                <div className="h-20 bg-surface-active/50 rounded-xl mb-4" />
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="h-32 bg-surface-active/50 rounded-xl" />
+                    <div className="h-32 bg-surface-active/50 rounded-xl" />
+                    <div className="h-32 bg-surface-active/50 rounded-xl" />
                 </div>
             </div>
         );
@@ -69,119 +68,70 @@ export default function RealTimeFunds() {
         : 0;
 
     return (
-        <div className={`bg-gradient-to-br from-indigo-600/20 to-purple-600/20 backdrop-blur-xl rounded-3xl p-8 border border-white/30 shadow-2xl transition-all duration-300 ${isPulsing ? 'scale-[1.01] shadow-cyan-500/50' : ''}`}>
-            {/* Header with Live Indicator */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <Wallet className="w-10 h-10 text-cyan-400" />
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    </div>
+        <div className={`
+            glass-panel rounded-3xl p-8 relative overflow-hidden transition-all duration-500
+            ${isPulsing ? 'shadow-[0_0_40px_rgba(0,240,255,0.1)]' : ''}
+        `}>
+            {/* Background Glow */}
+            <div className={`absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-primary/10 to-transparent blur-[80px] rounded-full pointer-events-none transition-opacity ${isPulsing ? 'opacity-50' : 'opacity-20'}`} />
+
+            <div className="relative z-10">
+                <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h2 className="text-2xl font-bold text-white">Fonds en Temps Réel</h2>
-                        <p className="text-xs text-gray-300 flex items-center gap-1">
-                            <Zap className="w-3 h-3 text-yellow-400" />
-                            Mise à jour live
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Value Display */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                {/* Total Value */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:border-cyan-400/50 transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="w-5 h-5 text-cyan-400" />
-                        <span className="text-sm text-gray-300">Valeur Totale</span>
-                    </div>
-                    <div className="text-4xl font-bold text-white">
-                        ${funds.totals.total_value.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                    </div>
-                </div>
-
-                {/* P&L */}
-                <div className={`bg-gradient-to-br ${isProfitable ? 'from-green-500/20 to-emerald-500/20 border-green-500/30' : 'from-red-500/20 to-rose-500/20 border-red-500/30'} backdrop-blur-sm rounded-2xl p-6 border hover:scale-[1.02] transition-all`}>
-                    <div className="flex items-center gap-2 mb-2">
-                        {isProfitable ? (
-                            <TrendingUp className="w-5 h-5 text-green-400" />
-                        ) : (
-                            <TrendingDown className="w-5 h-5 text-red-400" />
-                        )}
-                        <span className="text-sm text-gray-300">Profit & Loss</span>
-                    </div>
-                    <div className={`text-4xl font-bold ${isProfitable ? 'text-green-400' : 'text-red-400'}`}>
-                        {isProfitable ? '+' : ''}
-                        {funds.totals.pnl_percent.toFixed(2)}%
-                    </div>
-                </div>
-
-                {/* Cash Available */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:border-purple-400/50 transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Wallet className="w-5 h-5 text-purple-400" />
-                        <span className="text-sm text-gray-300">Cash Disponible</span>
-                    </div>
-                    <div className="text-4xl font-bold text-white mb-2">
-                        ${funds.totals.cash.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                        {funds.totals.positions_count} positions ouvertes
-                    </div>
-                </div>
-            </div>
-
-            {/* Stock vs Crypto Breakdown */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <div className="flex items-center gap-2 mb-4">
-                    <PieChart className="w-5 h-5 text-pink-400" />
-                    <h3 className="text-lg font-semibold text-white">Répartition Stocks / Crypto</h3>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mb-4">
-                    <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden flex">
-                        <div
-                            className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full flex items-center justify-center transition-all duration-500"
-                            style={{ width: `${stockPercentage}%` }}
-                        >
-                            {stockPercentage > 10 && (
-                                <span className="text-xs font-semibold text-white">
-                                    {stockPercentage.toFixed(0)}%
-                                </span>
-                            )}
-                        </div>
-                        <div
-                            className="bg-gradient-to-r from-orange-500 to-pink-400 h-full flex items-center justify-center transition-all duration-500"
-                            style={{ width: `${cryptoPercentage}%` }}
-                        >
-                            {cryptoPercentage > 10 && (
-                                <span className="text-xs font-semibold text-white">
-                                    {cryptoPercentage.toFixed(0)}%
-                                </span>
-                            )}
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-primary animate-pulse" />
+                            Portfolio Live
+                        </h2>
+                        <div className="flex items-baseline gap-4">
+                            <div className="text-5xl lg:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 tracking-tight">
+                                ${funds.totals.total_value.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                            </div>
+                            <div className={`text-xl font-bold flex items-center gap-1 ${isProfitable ? 'text-status-success' : 'text-status-error'}`}>
+                                {isProfitable ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+                                {isProfitable ? '+' : ''}{funds.totals.pnl_percent.toFixed(2)}%
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Values */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30">
-                        <div className="text-sm text-blue-300 mb-1">📈 Stocks</div>
-                        <div className="text-2xl font-bold text-white">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Cash Card */}
+                    <div className="bg-surface/50 rounded-2xl p-5 border border-surface-border group hover:border-primary/30 transition-colors">
+                        <div className="flex items-center gap-2 text-gray-400 mb-2">
+                            <Wallet className="w-5 h-5 text-primary" />
+                            <span className="text-sm font-medium">Cash Disponible</span>
+                        </div>
+                        <div className="text-2xl font-bold text-white group-hover:text-primary transition-colors">
+                            ${funds.totals.cash.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Liquidité immédiate</div>
+                    </div>
+
+                    {/* Stock Card */}
+                    <div className="bg-surface/50 rounded-2xl p-5 border border-surface-border group hover:border-blue-400/30 transition-colors">
+                        <div className="flex items-center gap-2 text-gray-400 mb-2">
+                            <PieChart className="w-5 h-5 text-blue-400" />
+                            <span className="text-sm font-medium">Action Value</span>
+                        </div>
+                        <div className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
                             ${funds.totals.stock_value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                            {stockPercentage.toFixed(1)}% du portfolio
+                        <div className="w-full bg-gray-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                            <div className="bg-blue-400 h-full rounded-full transition-all duration-1000" style={{ width: `${stockPercentage}%` }} />
                         </div>
                     </div>
-                    <div className="bg-orange-500/10 rounded-lg p-4 border border-orange-500/30">
-                        <div className="text-sm text-orange-300 mb-1">₿ Crypto</div>
-                        <div className="text-2xl font-bold text-white">
+
+                    {/* Crypto Card */}
+                    <div className="bg-surface/50 rounded-2xl p-5 border border-surface-border group hover:border-orange-400/30 transition-colors">
+                        <div className="flex items-center gap-2 text-gray-400 mb-2">
+                            <PieChart className="w-5 h-5 text-orange-400" />
+                            <span className="text-sm font-medium">Crypto Value</span>
+                        </div>
+                        <div className="text-2xl font-bold text-white group-hover:text-orange-400 transition-colors">
                             ${funds.totals.crypto_value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                            {cryptoPercentage.toFixed(1)}% du portfolio
+                        <div className="w-full bg-gray-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                            <div className="bg-orange-400 h-full rounded-full transition-all duration-1000" style={{ width: `${cryptoPercentage}%` }} />
                         </div>
                     </div>
                 </div>

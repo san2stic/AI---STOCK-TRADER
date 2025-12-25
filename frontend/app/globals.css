@@ -3,72 +3,96 @@
 @tailwind utilities;
 
 :root {
-  --background: 10, 10, 15;
+  --background: 5, 5, 10;
   --foreground: 255, 255, 255;
-
-  --primary-glow: conic-gradient(from 180deg at 50% 50%, #16abff33 0deg, #0885ff33 55deg, #54d6ff33 120deg, #0071ff33 160deg, transparent 360deg);
-  --secondary-glow: radial-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+  --primary-neon: 0, 240, 255;
+  --secondary-neon: 112, 0, 255;
 }
 
 @layer base {
   body {
-    @apply bg-background text-white antialiased overflow-x-hidden;
+    @apply bg-background text-white antialiased overflow-x-hidden selection:bg-primary/20 selection:text-primary;
     background-image:
-      radial-gradient(circle at 15% 50%, rgba(79, 172, 254, 0.08), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(240, 147, 251, 0.08), transparent 25%);
+      linear-gradient(to bottom, rgba(5, 5, 10, 0.95), rgba(5, 5, 10, 0.98)),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300f0ff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* Improve typography rendering */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+
+  /* Glassmorphism Cards */
+  .glass-panel {
+    @apply bg-surface/40 backdrop-blur-xl border border-surface-border shadow-glass hover:bg-surface/60 transition-all duration-300;
+  }
+
+  /* Neon Text Effects */
+  .text-neon-blue {
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(0, 240, 255, 0.3);
+  }
+
+  .text-neon-purple {
+    text-shadow: 0 0 10px rgba(112, 0, 255, 0.5), 0 0 20px rgba(112, 0, 255, 0.3);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply bg-primary/10 text-primary border border-primary/50 hover:bg-primary/20 hover:shadow-neon-blue transition-all duration-300 px-4 py-2 rounded-lg font-medium tracking-wide uppercase text-sm;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary/10 text-secondary border border-secondary/50 hover:bg-secondary/20 hover:shadow-neon-purple transition-all duration-300 px-4 py-2 rounded-lg font-medium tracking-wide uppercase text-sm;
   }
 }
 
 @layer utilities {
-  .glass {
-    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-lg;
-  }
-
-  .glass-card {
-    @apply bg-card-gradient backdrop-blur-xl border border-white/10 shadow-xl rounded-2xl;
-  }
-
-  .glass-hover {
-    @apply hover:bg-white/10 transition-all duration-300;
-  }
-
-  .text-glow {
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-  }
-
-  .text-glow-primary {
-    text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
-  }
-
   .flex-center {
     @apply flex items-center justify-center;
   }
 
-  /* Custom Scrollbar */
-  .custom-scrollbar::-webkit-scrollbar {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Custom Scrollbar - Cyberpunk Style */
+  ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-transparent;
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-active rounded-full border border-background;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/50;
   }
 }
 
-/* Global Animations */
-.hover-scale {
-  @apply transition-transform duration-200 hover:scale-[1.02];
+/* Recharts Customization Override */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Chart Tooltip Customization */
 .recharts-tooltip-cursor {
-  stroke: rgba(255, 255, 255, 0.1) !important;
+  stroke: rgba(0, 240, 255, 0.3) !important;
+  stroke-width: 2px !important;
 }
 
 .recharts-default-tooltip {
-  @apply !bg-[#13131f]/90 !backdrop-blur-md !border-white/10 !rounded-lg !shadow-xl !text-white;
+  @apply !bg-surface !border-surface-border !shadow-neon-blue !rounded-lg !p-3 !bg-opacity-90 !backdrop-blur-xl;
 }

@@ -155,7 +155,7 @@ export default function Home() {
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
-                    <div className="text-white text-2xl font-semibold animate-pulse">Chargement AI System...</div>
+                    <div className="text-white text-2xl font-semibold animate-pulse">Chargement Nexus UI...</div>
                 </div>
             </div>
         );
@@ -171,127 +171,101 @@ export default function Home() {
                 onResume={handleResume}
                 isPaused={isPaused}
             >
-                {/* Real-Time Funds Display */}
-                <div className="mb-8">
-                    <RealTimeFunds />
-                </div>
+                {/* Global Dashboard Content - Always Visible Elements could go here if needed, but per tab is cleaner */}
 
-                {/* Tab Content */}
-                <div className="animate-fade-in-up">
-                    {activeTab === 'overview' && (
-                        <div className="space-y-8">
-                            {/* Live ScoreBoard */}
-                            <LiveScoreBoard agents={agents} />
+                {activeTab === 'overview' && (
+                    <div className="space-y-8 animate-fade-in">
+                        {/* Search & Global Stats Row */}
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                            <div className="xl:col-span-2">
+                                <RealTimeFunds />
+                            </div>
+                            <div className="xl:col-span-1">
+                                <NextScanCountdown />
+                            </div>
+                        </div>
 
-                            {/* Next Scan Countdown */}
-                            <NextScanCountdown />
-
-                            {/* Global Trading Mode Control */}
+                        {/* Markets & Controls Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <TradingModeControl />
-
-                            {/* Stock/Crypto Split */}
                             <StockCryptoSplit />
+                        </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Economic Calendar */}
+                        {/* Leaderboard & Analysis */}
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                            <div className="xl:col-span-2">
+                                <LiveScoreBoard agents={agents} />
+                            </div>
+                            <div className="xl:col-span-1 space-y-6">
                                 <EconomicCalendar daysAhead={7} minImpact="MEDIUM" />
-
-                                {/* AI Economic Calendar Analysis */}
                                 <EconomicCalendarAnalysis daysAhead={7} />
                             </div>
+                        </div>
 
-                            {/* AI Models Display */}
-                            <ModelDisplay />
-
-                            {/* Agent Cards Grid */}
-                            <div>
-                                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                                    <span className="w-1 h-8 bg-primary rounded-full" />
-                                    Détails par Agent
+                        {/* AI Agents Grid */}
+                        <div>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                    <span className="w-1.5 h-8 bg-primary rounded-full shadow-neon-blue" />
+                                    Escouade Active
                                 </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {agents.map(agent => {
-                                        // Find matching model info
-                                        const modelInfo = Object.values(agentModels).find(
-                                            (m: any) => m.name === agent.name
-                                        ) as any;
-
-                                        return (
-                                            <AgentCard
-                                                key={agent.name}
-                                                agent={{
-                                                    ...agent,
-                                                    model: modelInfo?.model,
-                                                    model_category: modelInfo?.category,
-                                                }}
-                                                onClick={() => setSelectedAgent(agent.name)}
-                                            />
-                                        );
-                                    })}
-                                </div>
+                                <ModelDisplay />
                             </div>
 
-                            {/* Quick Stats */}
-                            <div className="glass-card p-8">
-                                <h2 className="text-2xl font-bold mb-6 text-glow">Statistiques Rapides</h2>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                                    <div className="text-center group hover:scale-105 transition-transform">
-                                        <div className="text-4xl font-bold text-primary mb-2 group-hover:text-primary-glow transition-colors">
-                                            {agents.length}
-                                        </div>
-                                        <div className="text-sm text-gray-400 uppercase tracking-wider">Agents Actifs</div>
-                                    </div>
-                                    <div className="text-center group hover:scale-105 transition-transform">
-                                        <div className="text-4xl font-bold text-success mb-2 group-hover:text-success-glow transition-colors">
-                                            {agents.reduce((sum, a) => sum + a.total_trades, 0)}
-                                        </div>
-                                        <div className="text-sm text-gray-400 uppercase tracking-wider">Trades Totaux</div>
-                                    </div>
-                                    <div className="text-center group hover:scale-105 transition-transform">
-                                        <div className="text-4xl font-bold text-accent mb-2">
-                                            {agents.length > 0 ? (agents.reduce((sum, a) => sum + (a.win_rate || 0), 0) / agents.length).toFixed(1) : '0.0'}%
-                                        </div>
-                                        <div className="text-sm text-gray-400 uppercase tracking-wider">Taux Moyen</div>
-                                    </div>
-                                    <div className="text-center group hover:scale-105 transition-transform">
-                                        <div className="text-4xl font-bold text-accent-pink mb-2">
-                                            ${agents.reduce((sum, a) => sum + a.total_value, 0).toFixed(0)}
-                                        </div>
-                                        <div className="text-sm text-gray-400 uppercase tracking-wider">Valeur Totale</div>
-                                    </div>
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {agents.map(agent => {
+                                    const modelInfo = Object.values(agentModels).find(
+                                        (m: any) => m.name === agent.name
+                                    ) as any;
+
+                                    return (
+                                        <AgentCard
+                                            key={agent.name}
+                                            agent={{
+                                                ...agent,
+                                                model: modelInfo?.model,
+                                                model_category: modelInfo?.category,
+                                            }}
+                                            onClick={() => setSelectedAgent(agent.name)}
+                                        />
+                                    );
+                                })}
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {activeTab === 'charts' && (
-                        <ErrorBoundary>
-                            <PerformanceCharts agents={agents} />
-                        </ErrorBoundary>
-                    )}
+                {activeTab === 'charts' && (
+                    <ErrorBoundary>
+                        <PerformanceCharts agents={agents} />
+                    </ErrorBoundary>
+                )}
 
-                    {activeTab === 'learning' && (
-                        <ErrorBoundary>
-                            <LearningDashboard />
-                        </ErrorBoundary>
-                    )}
+                {activeTab === 'learning' && (
+                    <ErrorBoundary>
+                        <LearningDashboard />
+                    </ErrorBoundary>
+                )}
 
-                    {activeTab === 'crew' && (
-                        <ErrorBoundary>
-                            <CrewDashboard />
-                        </ErrorBoundary>
-                    )}
+                {activeTab === 'crew' && (
+                    <ErrorBoundary>
+                        <CrewDashboard />
+                    </ErrorBoundary>
+                )}
 
-                    {activeTab === 'live' && (
-                        <div className="glass-card p-6 min-h-[600px]">
-                            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                {activeTab === 'live' && (
+                    <div className="glass-panel p-0 overflow-hidden min-h-[80vh] flex flex-col">
+                        <div className="p-6 border-b border-surface-border bg-surface/50">
+                            <h2 className="text-2xl font-bold flex items-center gap-3">
                                 <Activity className="text-primary animate-pulse" />
-                                Messages en Temps Réel
+                                Flux Neural en Temps Réel
                             </h2>
-                            <LiveMessageFeed messages={messages} maxMessages={100} />
                         </div>
-                    )}
-                </div>
+                        <div className="flex-1 overflow-hidden">
+                            <LiveMessageFeed messages={messages} maxMessages={200} />
+                        </div>
+                    </div>
+                )}
             </Shell>
 
             {/* Agent Detail Modal */}

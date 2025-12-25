@@ -67,26 +67,26 @@ export default function EconomicCalendar({
     const getImpactColor = (impact: string) => {
         switch (impact) {
             case "HIGH":
-                return "from-red-500/20 to-red-600/10 border-red-500/30";
+                return "from-status-error/20 to-status-error/5 border-status-error/30";
             case "MEDIUM":
-                return "from-yellow-500/20 to-yellow-600/10 border-yellow-500/30";
+                return "from-status-warning/20 to-status-warning/5 border-status-warning/30";
             case "LOW":
-                return "from-green-500/20 to-green-600/10 border-green-500/30";
+                return "from-status-success/20 to-status-success/5 border-status-success/30";
             default:
-                return "from-gray-500/20 to-gray-600/10 border-gray-500/30";
+                return "from-surface/20 to-surface/5 border-surface-border";
         }
     };
 
     const getImpactBadgeColor = (impact: string) => {
         switch (impact) {
             case "HIGH":
-                return "bg-red-500/20 text-red-300 border-red-500/50";
+                return "bg-status-error/20 text-status-error border-status-error/50";
             case "MEDIUM":
-                return "bg-yellow-500/20 text-yellow-300 border-yellow-500/50";
+                return "bg-status-warning/20 text-status-warning border-status-warning/50";
             case "LOW":
-                return "bg-green-500/20 text-green-300 border-green-500/50";
+                return "bg-status-success/20 text-status-success border-status-success/50";
             default:
-                return "bg-gray-500/20 text-gray-300 border-gray-500/50";
+                return "bg-surface-active text-gray-400 border-surface-border";
         }
     };
 
@@ -97,14 +97,14 @@ export default function EconomicCalendar({
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const diffDays = Math.floor(diffHours / 24);
 
-        if (diffHours < 0) return "Past";
-        if (diffHours < 24) return `In ${diffHours}h`;
-        return `In ${diffDays}d`;
+        if (diffHours < 0) return "Terminé";
+        if (diffHours < 24) return `Dans ${diffHours}h`;
+        return `Dans ${diffDays}j`;
     };
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
-        return date.toLocaleDateString("en-US", {
+        return date.toLocaleDateString("fr-FR", {
             weekday: "short",
             month: "short",
             day: "numeric",
@@ -113,36 +113,31 @@ export default function EconomicCalendar({
 
     if (loading) {
         return (
-            <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/30 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                    <Calendar className="w-6 h-6 text-blue-400" />
-                    <h2 className="text-xl font-bold text-white">Economic Calendar</h2>
-                </div>
-                <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-                </div>
+            <div className="glass-panel text-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <div className="text-gray-400">Scan des événements économiques...</div>
             </div>
         );
     }
 
     return (
-        <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/30 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6">
+        <div className="glass-panel p-6 rounded-3xl border border-surface-border">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                    <Calendar className="w-6 h-6 text-blue-400" />
-                    <h2 className="text-xl font-bold text-white">Economic Calendar</h2>
+                    <Calendar className="w-6 h-6 text-primary" />
+                    <h2 className="text-xl font-bold text-white">Calendrier Éco</h2>
                 </div>
 
                 <button
                     onClick={() => fetchEvents(true)}
                     disabled={refreshing}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition-all duration-200 border border-blue-500/30 disabled:opacity-50"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-surface-active hover:bg-surface-hover text-gray-300 rounded-lg transition-all duration-200 border border-surface-border disabled:opacity-50 text-sm"
                 >
                     <RefreshCw
-                        className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+                        className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
                     />
-                    {refreshing ? "Refreshing..." : "Refresh"}
+                    {refreshing ? "..." : "Refresh"}
                 </button>
             </div>
 
@@ -152,9 +147,9 @@ export default function EconomicCalendar({
                     <button
                         key={impact}
                         onClick={() => setSelectedImpact(impact)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${selectedImpact === impact
-                                ? "bg-blue-500 text-white"
-                                : "bg-gray-700/30 text-gray-400 hover:bg-gray-700/50"
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-200 ${selectedImpact === impact
+                            ? "bg-primary text-background"
+                            : "bg-surface-active text-gray-500 hover:text-gray-300"
                             }`}
                     >
                         {impact}
@@ -163,11 +158,11 @@ export default function EconomicCalendar({
             </div>
 
             {/* Events List */}
-            <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
                 {events.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <div className="flex flex-col items-center justify-center py-12 text-gray-400/50">
                         <AlertCircle className="w-12 h-12 mb-3 opacity-50" />
-                        <p>No upcoming events found</p>
+                        <p>Aucun événement majeur détecté</p>
                     </div>
                 ) : (
                     events.map((event, index) => (
@@ -175,50 +170,43 @@ export default function EconomicCalendar({
                             key={index}
                             className={`bg-gradient-to-r ${getImpactColor(
                                 event.impact
-                            )} backdrop-blur-sm rounded-xl border p-4 hover:scale-[1.02] transition-all duration-200`}
+                            )} backdrop-blur-sm rounded-xl border p-4 hover:scale-[1.01] transition-all duration-200 group`}
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
                                     {/* Event Name & Country */}
                                     <div className="flex items-center gap-2 mb-2">
-                                        <h3 className="text-white font-semibold">{event.name}</h3>
-                                        <span className="px-2 py-0.5 bg-gray-700/50 text-gray-300 text-xs rounded-md border border-gray-600/50">
+                                        <h3 className="text-white font-bold text-sm group-hover:text-primary transition-colors">{event.name}</h3>
+                                        <span className="px-1.5 py-0.5 bg-background/50 text-gray-300 text-[10px] uppercase font-mono rounded border border-white/5">
                                             {event.country}
                                         </span>
                                     </div>
 
                                     {/* Date & Time */}
-                                    <div className="flex items-center gap-3 text-sm text-gray-400 mb-2">
+                                    <div className="flex items-center gap-3 text-xs text-gray-400 mb-2">
                                         <span className="flex items-center gap-1">
-                                            <Calendar className="w-4 h-4" />
+                                            <Calendar className="w-3 h-3" />
                                             {formatDate(event.date)}
                                         </span>
                                         {event.time && (
                                             <span className="flex items-center gap-1">
-                                                <Clock className="w-4 h-4" />
+                                                <Clock className="w-3 h-3" />
                                                 {event.time}
                                             </span>
                                         )}
                                     </div>
 
-                                    {/* Description */}
-                                    {event.description && (
-                                        <p className="text-sm text-gray-400 mb-2">
-                                            {event.description}
-                                        </p>
-                                    )}
-
                                     {/* Forecast & Previous */}
                                     {(event.forecast || event.previous) && (
-                                        <div className="flex gap-4 text-xs text-gray-500">
+                                        <div className="flex gap-4 text-xs text-gray-500 border-t border-white/5 pt-2 mt-2">
                                             {event.forecast && (
                                                 <span>
-                                                    Forecast: <strong>{event.forecast}</strong>
+                                                    Prévu: <strong className="text-gray-300">{event.forecast}</strong>
                                                 </span>
                                             )}
                                             {event.previous && (
                                                 <span>
-                                                    Previous: <strong>{event.previous}</strong>
+                                                    Préc: <strong className="text-gray-300">{event.previous}</strong>
                                                 </span>
                                             )}
                                         </div>
@@ -228,13 +216,13 @@ export default function EconomicCalendar({
                                 {/* Impact Badge & Countdown */}
                                 <div className="flex flex-col items-end gap-2">
                                     <span
-                                        className={`px-3 py-1 rounded-lg text-xs font-bold border ${getImpactBadgeColor(
+                                        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getImpactBadgeColor(
                                             event.impact
                                         )}`}
                                     >
                                         {event.impact}
                                     </span>
-                                    <span className="text-xs text-gray-400 font-medium">
+                                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
                                         {getCountdownText(event.date, event.time)}
                                     </span>
                                 </div>
@@ -246,27 +234,10 @@ export default function EconomicCalendar({
 
             {/* Last Update */}
             {lastUpdate && (
-                <div className="mt-4 pt-4 border-t border-gray-700/50 text-xs text-gray-500 text-center">
-                    Last updated: {lastUpdate.toLocaleTimeString()}
+                <div className="mt-4 pt-4 border-t border-surface-border text-[10px] text-gray-600 text-center uppercase tracking-widest">
+                    MAJ: {lastUpdate.toLocaleTimeString()}
                 </div>
             )}
-
-            <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(55, 65, 81, 0.3);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(107, 114, 128, 0.5);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(107, 114, 128, 0.7);
-        }
-      `}</style>
         </div>
     );
 }
