@@ -654,6 +654,431 @@ class AdvancedIndicators:
         }
 
 
+    # ========== NEW PHASE 1 METHODS ==========
+    
+    async def get_support_resistance_levels(self, symbol: str, lookback_days: int = 60) -> Dict[str, Any]:
+        """
+        Detect key support and resistance levels automatically.
+        Uses pivot points, price clusters, and volume profile.
+        """
+        try:
+            historical = await self.data_collector.get_historical_data(symbol, "3m")
+            
+            if not historical or len(historical) < 20:
+                return {"error": "Insufficient historical data"}
+            
+            # Limit to lookback period
+            data = historical[-lookback_days:] if len(historical) >= lookback_days else historical
+            
+            closes = [bar.get("close", bar.get("c", 0)) for bar in data]
+            highs = [bar.get("high", bar.get("h", 0)) for bar in data]
+            lows = [bar.get("low", bar.get("l", 0)) for bar in data]
+            volumes = [bar.get("volume", bar.get("v", 0)) for bar in data]
+            
+            current_price = closes[-1]
+            
+            # Method 1: Pivot Points (most recent period)
+            recent_high = max(highs[-20:])
+            recent_low = min(lows[-20:])
+            recent_close = closes[-1]
+            pivot = (recent_high + recent_low + recent_close) / 3
+            
+            r1 = 2 * pivot - recent_low
+            r2 = pivot + (recent_high - recent_low)
+            r3 = recent_high + 2 * (pivot - recent_low)
+            s1 = 2 * pivot - recent_high
+            s2 = pivot - (recent_high - recent_low)
+            s3 = recent_low - 2 * (recent_high - pivot)
+            
+            # Method 2: Price clusters (where price spent most time)
+            price_min = min(lows)
+            price_max = max(highs)
+            price_range = price_max - price_min
+            num_bins = 20
+            bin_size = price_range / num_bins if price_range > 0 else 1
+            
+            clusters = {}
+            for i in range(len(closes)):
+                bin_idx = int((closes[i] - price_min) / bin_size) if bin_size > 0 else 0
+                bin_idx = min(bin_idx, num_bins - 1)  # Clamp
+                bin_price = price_min + (bin_idx + 0.5) * bin_size
+                clusters[round(bin_price, 2)] = clusters.get(round(bin_price, 2), 0) + volumes[i]
+            
+            # Find top 5 volume clusters
+            sorted_clusters = sorted(clusters.items(), key=lambda x: x[1], reverse=True)[:5]
+            volume_levels = [{"price": p, "strength": "high" if v > sum(volumes) * 0.1 else "medium"} 
+                            for p, v in sorted_clusters]
+            
+            # Method 3: Historical swing highs/lows
+            swing_highs = []
+            swing_lows = []
+            
+            for i in range(2, len(highs) - 2):
+                if highs[i] > highs[i-1] and highs[i] > highs[i-2] and highs[i] > highs[i+1] and highs[i] > highs[i+2]:
+                    swing_highs.append(highs[i])
+                if lows[i] < lows[i-1] and lows[i] < lows[i-2] and lows[i] < lows[i+1] and lows[i] < lows[i+2]:
+                    swing_lows.append(lows[i])
+            
+            # Compile support/resistance levels
+            resistances = []
+            supports = []
+            
+            for level in [r1, r2, r3] + swing_highs[-3:]:
+                if level > current_price:
+                    resistances.append({
+                        "price": round(level, 2),
+                        "distance_percent": round((level - current_price) / current_price * 100, 2),
+                        "strength": "strong" if level in [r1, r2] else "moderate"
+                    })
+            
+            for level in [s1, s2, s3] + swing_lows[-3:]:
+                if level < current_price:
+                    supports.append({
+                        "price": round(level, 2),
+                        "distance_percent": round((current_price - level) / current_price * 100, 2),
+                        "strength": "strong" if level in [s1, s2] else "moderate"
+                    })
+            
+            # Sort by distance
+            resistances.sort(key=lambda x: x["distance_percent"])
+            supports.sort(key=lambda x: x["distance_percent"])
+            
+            return {
+                "symbol": symbol,
+                "current_price": current_price,
+                "pivot": round(pivot, 2),
+                "resistances": resistances[:5],
+                "supports": supports[:5],
+                "volume_clusters": volume_levels,
+                "nearest_resistance": resistances[0] if resistances else None,
+                "nearest_support": supports[0] if supports else None,
+                "interpretation": f"Key support at {supports[0]['price'] if supports else 'N/A'}, resistance at {resistances[0]['price'] if resistances else 'N/A'}"
+            }
+            
+        except Exception as e:
+            logger.error("support_resistance_error", symbol=symbol, error=str(e))
+            return {"error": str(e)}
+    
+    async def analyze_volatility_regime(self, symbol: str) -> Dict[str, Any]:
+        """
+        Classify current volatility regime: LOW, NORMAL, HIGH, EXTREME.
+        Provides position sizing recommendations based on regime.
+        """
+        try:
+            historical = await self.data_collector.get_historical_data(symbol, "3m")
+            
+            if not historical or len(historical) < 60:
+                return {"error": "Insufficient historical data (need 60+ days)"}
+            
+            closes = [bar.get("close", bar.get("c", 0)) for bar in historical]
+            highs = [bar.get("high", bar.get("h", 0)) for bar in historical]
+            lows = [bar.get("low", bar.get("l", 0)) for bar in historical]
+            
+            # Calculate daily returns
+            returns = [(closes[i] - closes[i-1]) / closes[i-1] * 100 for i in range(1, len(closes))]
+            
+            # Current ATR (14-period)
+            atr_current = self.calculate_atr(highs[-20:], lows[-20:], closes[-20:], period=14)
+            current_atr_pct = atr_current.get("atr_percent", 0)
+            
+            # Historical ATR comparison (20, 60 day lookback)
+            atr_20d = self.calculate_atr(highs[-25:-5], lows[-25:-5], closes[-25:-5], period=14)
+            atr_60d = self.calculate_atr(highs[-65:-5], lows[-65:-5], closes[-65:-5], period=14)
+            
+            atr_20d_pct = atr_20d.get("atr_percent", current_atr_pct)
+            atr_60d_pct = atr_60d.get("atr_percent", current_atr_pct)
+            
+            # Historical volatility (standard deviation of returns)
+            mean_return = sum(returns) / len(returns)
+            variance = sum((r - mean_return) ** 2 for r in returns) / len(returns)
+            historical_vol = math.sqrt(variance) * math.sqrt(252)  # Annualized
+            
+            # Recent volatility (last 20 days)
+            recent_returns = returns[-20:]
+            mean_recent = sum(recent_returns) / len(recent_returns)
+            variance_recent = sum((r - mean_recent) ** 2 for r in recent_returns) / len(recent_returns)
+            recent_vol = math.sqrt(variance_recent) * math.sqrt(252)
+            
+            # Volatility ratio (current vs historical)
+            vol_ratio = recent_vol / historical_vol if historical_vol > 0 else 1
+            
+            # Classify regime
+            if vol_ratio < 0.7:
+                regime = "LOW"
+                position_multiplier = 1.25
+                recommendation = "Volatility compressed - consider larger positions, watch for breakout"
+            elif vol_ratio < 1.2:
+                regime = "NORMAL"
+                position_multiplier = 1.0
+                recommendation = "Normal volatility - standard position sizing"
+            elif vol_ratio < 1.8:
+                regime = "HIGH"
+                position_multiplier = 0.7
+                recommendation = "Elevated volatility - reduce position sizes, widen stops"
+            else:
+                regime = "EXTREME"
+                position_multiplier = 0.4
+                recommendation = "Extreme volatility - minimal positions, consider cash"
+            
+            # Volatility trend
+            if current_atr_pct > atr_20d_pct * 1.1:
+                vol_trend = "expanding"
+            elif current_atr_pct < atr_20d_pct * 0.9:
+                vol_trend = "contracting"
+            else:
+                vol_trend = "stable"
+            
+            return {
+                "symbol": symbol,
+                "regime": regime,
+                "vol_ratio": round(vol_ratio, 2),
+                "current_atr_percent": round(current_atr_pct, 2),
+                "historical_volatility": round(historical_vol, 2),
+                "recent_volatility": round(recent_vol, 2),
+                "volatility_trend": vol_trend,
+                "position_multiplier": position_multiplier,
+                "recommendation": recommendation,
+                "interpretation": f"{regime} volatility regime ({vol_trend}), suggest {position_multiplier}x normal sizing"
+            }
+            
+        except Exception as e:
+            logger.error("volatility_regime_error", symbol=symbol, error=str(e))
+            return {"error": str(e)}
+    
+    async def get_momentum_divergence(self, symbol: str) -> Dict[str, Any]:
+        """
+        Detect divergences between price and RSI/MACD.
+        Bullish divergence: Price makes lower low, RSI makes higher low
+        Bearish divergence: Price makes higher high, RSI makes lower high
+        """
+        try:
+            historical = await self.data_collector.get_historical_data(symbol, "3m")
+            
+            if not historical or len(historical) < 30:
+                return {"error": "Insufficient historical data"}
+            
+            closes = [bar.get("close", bar.get("c", 0)) for bar in historical]
+            
+            # Calculate RSI
+            gains = []
+            losses = []
+            for i in range(1, len(closes)):
+                change = closes[i] - closes[i-1]
+                gains.append(change if change > 0 else 0)
+                losses.append(-change if change < 0 else 0)
+            
+            period = 14
+            avg_gain = sum(gains[:period]) / period
+            avg_loss = sum(losses[:period]) / period
+            
+            rsi_values = []
+            for i in range(period, len(gains)):
+                avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+                avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+                rs = avg_gain / avg_loss if avg_loss > 0 else 100
+                rsi = 100 - (100 / (1 + rs))
+                rsi_values.append(rsi)
+            
+            # Find price swing lows and highs (last 20 periods)
+            lookback = min(20, len(rsi_values))
+            recent_closes = closes[-lookback:]
+            recent_rsi = rsi_values[-lookback:]
+            
+            # Find local minima/maxima
+            price_lows = []
+            price_highs = []
+            rsi_lows = []
+            rsi_highs = []
+            
+            for i in range(1, len(recent_closes) - 1):
+                if recent_closes[i] < recent_closes[i-1] and recent_closes[i] < recent_closes[i+1]:
+                    price_lows.append((i, recent_closes[i]))
+                    rsi_lows.append((i, recent_rsi[i]))
+                if recent_closes[i] > recent_closes[i-1] and recent_closes[i] > recent_closes[i+1]:
+                    price_highs.append((i, recent_closes[i]))
+                    rsi_highs.append((i, recent_rsi[i]))
+            
+            divergences = []
+            
+            # Check for bullish divergence (at lows)
+            if len(price_lows) >= 2:
+                last_low = price_lows[-1]
+                prev_low = price_lows[-2]
+                
+                # Price lower low, RSI higher low
+                if last_low[1] < prev_low[1]:  # Price made lower low
+                    last_rsi_low = rsi_lows[-1][1] if rsi_lows else recent_rsi[-1]
+                    prev_rsi_low = rsi_lows[-2][1] if len(rsi_lows) >= 2 else recent_rsi[0]
+                    
+                    if last_rsi_low > prev_rsi_low:  # RSI made higher low
+                        divergences.append({
+                            "type": "bullish",
+                            "strength": "strong" if (last_rsi_low - prev_rsi_low) > 5 else "moderate",
+                            "description": "Price lower low but RSI higher low - potential reversal up"
+                        })
+            
+            # Check for bearish divergence (at highs)
+            if len(price_highs) >= 2:
+                last_high = price_highs[-1]
+                prev_high = price_highs[-2]
+                
+                # Price higher high, RSI lower high
+                if last_high[1] > prev_high[1]:  # Price made higher high
+                    last_rsi_high = rsi_highs[-1][1] if rsi_highs else recent_rsi[-1]
+                    prev_rsi_high = rsi_highs[-2][1] if len(rsi_highs) >= 2 else recent_rsi[0]
+                    
+                    if last_rsi_high < prev_rsi_high:  # RSI made lower high
+                        divergences.append({
+                            "type": "bearish",
+                            "strength": "strong" if (prev_rsi_high - last_rsi_high) > 5 else "moderate",
+                            "description": "Price higher high but RSI lower high - potential reversal down"
+                        })
+            
+            current_rsi = rsi_values[-1] if rsi_values else 50
+            
+            # Hidden divergences (trend continuation)
+            if len(price_lows) >= 2 and len(rsi_lows) >= 2:
+                if price_lows[-1][1] > price_lows[-2][1] and rsi_lows[-1][1] < rsi_lows[-2][1]:
+                    divergences.append({
+                        "type": "hidden_bullish",
+                        "strength": "moderate",
+                        "description": "Hidden bullish - uptrend continuation likely"
+                    })
+            
+            if len(price_highs) >= 2 and len(rsi_highs) >= 2:
+                if price_highs[-1][1] < price_highs[-2][1] and rsi_highs[-1][1] > rsi_highs[-2][1]:
+                    divergences.append({
+                        "type": "hidden_bearish",
+                        "strength": "moderate",
+                        "description": "Hidden bearish - downtrend continuation likely"
+                    })
+            
+            overall_signal = "neutral"
+            if divergences:
+                bullish_count = sum(1 for d in divergences if "bullish" in d["type"])
+                bearish_count = sum(1 for d in divergences if "bearish" in d["type"])
+                if bullish_count > bearish_count:
+                    overall_signal = "bullish"
+                elif bearish_count > bullish_count:
+                    overall_signal = "bearish"
+            
+            return {
+                "symbol": symbol,
+                "current_rsi": round(current_rsi, 2),
+                "divergences": divergences,
+                "divergence_count": len(divergences),
+                "overall_signal": overall_signal,
+                "has_divergence": len(divergences) > 0,
+                "interpretation": divergences[0]["description"] if divergences else "No significant divergences detected"
+            }
+            
+        except Exception as e:
+            logger.error("momentum_divergence_error", symbol=symbol, error=str(e))
+            return {"error": str(e)}
+    
+    async def analyze_price_structure(self, symbol: str) -> Dict[str, Any]:
+        """
+        Analyze price structure: Higher Highs/Lows (uptrend) or Lower Highs/Lows (downtrend).
+        Identifies trend health and potential reversal points.
+        """
+        try:
+            historical = await self.data_collector.get_historical_data(symbol, "3m")
+            
+            if not historical or len(historical) < 30:
+                return {"error": "Insufficient historical data"}
+            
+            closes = [bar.get("close", bar.get("c", 0)) for bar in historical]
+            highs = [bar.get("high", bar.get("h", 0)) for bar in historical]
+            lows = [bar.get("low", bar.get("l", 0)) for bar in historical]
+            
+            # Find swing highs and lows
+            swing_highs = []
+            swing_lows = []
+            
+            for i in range(2, len(highs) - 2):
+                if highs[i] > highs[i-1] and highs[i] > highs[i-2] and highs[i] > highs[i+1] and highs[i] > highs[i+2]:
+                    swing_highs.append({"index": i, "price": highs[i]})
+                if lows[i] < lows[i-1] and lows[i] < lows[i-2] and lows[i] < lows[i+1] and lows[i] < lows[i+2]:
+                    swing_lows.append({"index": i, "price": lows[i]})
+            
+            # Analyze recent swings (last 4-5)
+            recent_highs = swing_highs[-5:] if len(swing_highs) >= 5 else swing_highs
+            recent_lows = swing_lows[-5:] if len(swing_lows) >= 5 else swing_lows
+            
+            # Count Higher Highs vs Lower Highs
+            hh_count = 0  # Higher Highs
+            lh_count = 0  # Lower Highs
+            for i in range(1, len(recent_highs)):
+                if recent_highs[i]["price"] > recent_highs[i-1]["price"]:
+                    hh_count += 1
+                else:
+                    lh_count += 1
+            
+            # Count Higher Lows vs Lower Lows
+            hl_count = 0  # Higher Lows
+            ll_count = 0  # Lower Lows
+            for i in range(1, len(recent_lows)):
+                if recent_lows[i]["price"] > recent_lows[i-1]["price"]:
+                    hl_count += 1
+                else:
+                    ll_count += 1
+            
+            # Determine structure
+            if hh_count > lh_count and hl_count > ll_count:
+                structure = "uptrend"
+                health = "healthy" if hh_count >= 2 and hl_count >= 2 else "developing"
+                bias = "bullish"
+            elif lh_count > hh_count and ll_count > hl_count:
+                structure = "downtrend"
+                health = "healthy" if lh_count >= 2 and ll_count >= 2 else "developing"
+                bias = "bearish"
+            elif hh_count > lh_count and ll_count > hl_count:
+                structure = "diverging"
+                health = "uncertain"
+                bias = "neutral"
+            elif lh_count > hh_count and hl_count > ll_count:
+                structure = "converging"
+                health = "uncertain"
+                bias = "neutral"
+            else:
+                structure = "ranging"
+                health = "stable"
+                bias = "neutral"
+            
+            # Detect potential break of structure
+            current_price = closes[-1]
+            last_swing_low = recent_lows[-1]["price"] if recent_lows else None
+            last_swing_high = recent_highs[-1]["price"] if recent_highs else None
+            
+            bos_signal = None
+            if structure == "uptrend" and last_swing_low and current_price < last_swing_low:
+                bos_signal = {"type": "bearish_bos", "description": "Break of Structure - uptrend may be ending"}
+            elif structure == "downtrend" and last_swing_high and current_price > last_swing_high:
+                bos_signal = {"type": "bullish_bos", "description": "Break of Structure - downtrend may be ending"}
+            
+            return {
+                "symbol": symbol,
+                "current_price": current_price,
+                "structure": structure,
+                "trend_health": health,
+                "bias": bias,
+                "higher_highs": hh_count,
+                "lower_highs": lh_count,
+                "higher_lows": hl_count,
+                "lower_lows": ll_count,
+                "last_swing_high": last_swing_high,
+                "last_swing_low": last_swing_low,
+                "recent_highs": recent_highs[-3:],
+                "recent_lows": recent_lows[-3:],
+                "break_of_structure": bos_signal,
+                "interpretation": f"{structure.title()} structure ({health}) with {bias} bias"
+            }
+            
+        except Exception as e:
+            logger.error("price_structure_error", symbol=symbol, error=str(e))
+            return {"error": str(e)}
+
+
 # Singleton instance
 _advanced_indicators: AdvancedIndicators = None
 

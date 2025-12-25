@@ -624,6 +624,306 @@ TRADING_TOOLS = [
             },
         },
     },
+    # ========== NEW PHASE 1: ADVANCED LOCAL ANALYSIS ==========
+    {
+        "type": "function",
+        "function": {
+            "name": "get_support_resistance_levels",
+            "description": "Automatically detect key support and resistance levels using pivot points, price clusters, volume profile, and swing highs/lows. Essential for entry/exit planning and stop-loss placement.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Stock or crypto symbol to analyze",
+                    },
+                    "lookback_days": {
+                        "type": "integer",
+                        "description": "Number of days to look back for analysis",
+                        "default": 60,
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_volatility_regime",
+            "description": "Classify current volatility regime as LOW, NORMAL, HIGH, or EXTREME. Returns position sizing recommendations based on regime. Helps adapt strategy to market conditions.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to analyze volatility for",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_momentum_divergence",
+            "description": "Detect bullish/bearish divergences between price and RSI. Bullish divergence (potential reversal up): price makes lower low but RSI makes higher low. Powerful contrarian signal.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to check for divergences",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_price_structure",
+            "description": "Analyze price structure for Higher Highs/Lows (uptrend) or Lower Highs/Lows (downtrend). Detects trend health, break of structure signals, and potential reversal points.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to analyze price structure for",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
+    # ========== NEW PHASE 2: MEMORY AND LEARNING ==========
+    {
+        "type": "function",
+        "function": {
+            "name": "recall_similar_trades",
+            "description": "Recall similar trades from your history. Find past trades by symbol, action type, or market condition to learn from previous decisions and outcomes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Filter by specific symbol (optional)",
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": ["buy", "sell"],
+                        "description": "Filter by action type (optional)",
+                    },
+                    "lookback_days": {
+                        "type": "integer",
+                        "description": "Number of days to look back",
+                        "default": 90,
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum trades to return",
+                        "default": 10,
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_agent_performance_history",
+            "description": "Get your performance history across different symbols and conditions. Shows win rates, P&L, and activity breakdown.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "lookback_days": {
+                        "type": "integer",
+                        "description": "Number of days to analyze",
+                        "default": 30,
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_market_regime_history",
+            "description": "Get historical market regime analysis (bull/bear/sideways) over time. Useful for understanding market cycles and adapting strategy.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "lookback_days": {
+                        "type": "integer",
+                        "description": "Number of days to analyze",
+                        "default": 60,
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "record_trade_insight",
+            "description": "Record an important trading insight for future reference. Use this to document observations, patterns, or learnings.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Related symbol or 'MARKET' for general insights",
+                    },
+                    "insight_type": {
+                        "type": "string",
+                        "enum": ["technical", "fundamental", "sentiment", "pattern"],
+                        "description": "Type of insight",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "The insight content (max 500 chars)",
+                    },
+                    "importance": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"],
+                        "description": "Importance level",
+                        "default": "medium",
+                    },
+                },
+                "required": ["symbol", "insight_type", "content"],
+            },
+        },
+    },
+    # ========== NEW PHASE 3: PORTFOLIO INTELLIGENCE ==========
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_portfolio_risk",
+            "description": "Get comprehensive portfolio risk analysis including VaR estimate, concentration risk, and risk score (0-100). Essential for understanding overall exposure.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_sector_exposure",
+            "description": "Analyze portfolio sector exposure with breakdown by Technology, Finance, Healthcare, Crypto, etc. Includes rebalancing suggestions.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate_portfolio_beta",
+            "description": "Calculate portfolio beta relative to market (SPY). Beta > 1 means more volatile than market, < 1 means less volatile.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "optimize_portfolio_allocation",
+            "description": "Get portfolio optimization suggestions based on risk, sector exposure, and beta. Returns actionable recommendations.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    # ========== NEW PHASE 4: ADVANCED REASONING ==========
+    {
+        "type": "function",
+        "function": {
+            "name": "evaluate_trade_thesis",
+            "description": "Evaluate a trading thesis with structured pros/cons analysis. Returns conviction score and recommendation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Stock or crypto symbol",
+                    },
+                    "thesis": {
+                        "type": "string",
+                        "description": "Your trading thesis to evaluate",
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": ["buy", "sell"],
+                        "description": "Proposed action",
+                        "default": "buy",
+                    },
+                },
+                "required": ["symbol", "thesis"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_scenarios",
+            "description": "Compare bull, bear, and neutral scenarios with probabilities and target prices. Helps assess upside vs downside.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to analyze scenarios for",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_risk_reward_analysis",
+            "description": "Calculate optimal stop loss, take profit levels (1R, 2R, 3R), and risk/reward ratio. Essential for trade planning.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to analyze",
+                    },
+                    "entry_price": {
+                        "type": "number",
+                        "description": "Optional entry price (uses current price if not specified)",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_market_anomaly",
+            "description": "Detect unusual market activity: volume spikes, price gaps, unusual ranges. Returns anomaly score and alerts.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to check for anomalies",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
 ]
 
 
@@ -683,6 +983,26 @@ class TradingTools:
             # NEW PHASE 3 INTELLIGENCE TOOLS
             "detect_chart_patterns": self.detect_chart_patterns,
             "get_conviction_score": self.get_conviction_score,
+            # NEW PHASE 1: ADVANCED LOCAL ANALYSIS
+            "get_support_resistance_levels": self.get_support_resistance_levels,
+            "analyze_volatility_regime": self.analyze_volatility_regime,
+            "get_momentum_divergence": self.get_momentum_divergence,
+            "analyze_price_structure": self.analyze_price_structure,
+            # NEW PHASE 2: MEMORY AND LEARNING
+            "recall_similar_trades": self.recall_similar_trades,
+            "get_agent_performance_history": self.get_agent_performance_history,
+            "get_market_regime_history": self.get_market_regime_history,
+            "record_trade_insight": self.record_trade_insight,
+            # NEW PHASE 3: PORTFOLIO INTELLIGENCE
+            "analyze_portfolio_risk": self.analyze_portfolio_risk,
+            "get_sector_exposure": self.get_sector_exposure,
+            "calculate_portfolio_beta": self.calculate_portfolio_beta,
+            "optimize_portfolio_allocation": self.optimize_portfolio_allocation,
+            # NEW PHASE 4: ADVANCED REASONING
+            "evaluate_trade_thesis": self.evaluate_trade_thesis,
+            "compare_scenarios": self.compare_scenarios,
+            "get_risk_reward_analysis": self.get_risk_reward_analysis,
+            "detect_market_anomaly": self.detect_market_anomaly,
         }
         
         handler = handlers.get(tool_name)
@@ -2392,3 +2712,415 @@ class TradingTools:
                 error=str(e)
             )
             return {"error": str(e), "conviction_score": 50, "action_suggested": "HOLD"}
+    
+    # ========== NEW PHASE 1: ADVANCED LOCAL ANALYSIS TOOLS ==========
+    
+    async def get_support_resistance_levels(self, symbol: str, lookback_days: int = 60) -> Dict[str, Any]:
+        """Get automatically detected support and resistance levels."""
+        from services.advanced_indicators import get_advanced_indicators
+        
+        symbol = symbol.upper()
+        indicators = get_advanced_indicators()
+        
+        try:
+            result = await indicators.get_support_resistance_levels(symbol, lookback_days)
+            
+            logger.info(
+                "support_resistance_analyzed",
+                agent=self.agent_name,
+                symbol=symbol,
+                resistances_found=len(result.get("resistances", [])),
+                supports_found=len(result.get("supports", [])),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(
+                "get_support_resistance_error",
+                agent=self.agent_name,
+                symbol=symbol,
+                error=str(e)
+            )
+            return {"error": str(e)}
+    
+    async def analyze_volatility_regime(self, symbol: str) -> Dict[str, Any]:
+        """Analyze and classify the current volatility regime."""
+        from services.advanced_indicators import get_advanced_indicators
+        
+        symbol = symbol.upper()
+        indicators = get_advanced_indicators()
+        
+        try:
+            result = await indicators.analyze_volatility_regime(symbol)
+            
+            logger.info(
+                "volatility_regime_analyzed",
+                agent=self.agent_name,
+                symbol=symbol,
+                regime=result.get("regime"),
+                position_multiplier=result.get("position_multiplier"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(
+                "analyze_volatility_regime_error",
+                agent=self.agent_name,
+                symbol=symbol,
+                error=str(e)
+            )
+            return {"error": str(e)}
+    
+    async def get_momentum_divergence(self, symbol: str) -> Dict[str, Any]:
+        """Detect momentum divergences between price and RSI."""
+        from services.advanced_indicators import get_advanced_indicators
+        
+        symbol = symbol.upper()
+        indicators = get_advanced_indicators()
+        
+        try:
+            result = await indicators.get_momentum_divergence(symbol)
+            
+            logger.info(
+                "momentum_divergence_analyzed",
+                agent=self.agent_name,
+                symbol=symbol,
+                divergence_count=result.get("divergence_count", 0),
+                overall_signal=result.get("overall_signal"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(
+                "get_momentum_divergence_error",
+                agent=self.agent_name,
+                symbol=symbol,
+                error=str(e)
+            )
+            return {"error": str(e)}
+    
+    async def analyze_price_structure(self, symbol: str) -> Dict[str, Any]:
+        """Analyze price structure for trend health and reversals."""
+        from services.advanced_indicators import get_advanced_indicators
+        
+        symbol = symbol.upper()
+        indicators = get_advanced_indicators()
+        
+        try:
+            result = await indicators.analyze_price_structure(symbol)
+            
+            logger.info(
+                "price_structure_analyzed",
+                agent=self.agent_name,
+                symbol=symbol,
+                structure=result.get("structure"),
+                bias=result.get("bias"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(
+                "analyze_price_structure_error",
+                agent=self.agent_name,
+                symbol=symbol,
+                error=str(e)
+            )
+            return {"error": str(e)}
+    
+    # ========== NEW PHASE 2: MEMORY AND LEARNING TOOLS ==========
+    
+    async def recall_similar_trades(
+        self, 
+        symbol: str = None, 
+        action: str = None,
+        lookback_days: int = 90,
+        limit: int = 10
+    ) -> Dict[str, Any]:
+        """Recall similar trades from history."""
+        from services.memory_tools import get_memory_tools
+        
+        memory = get_memory_tools(self.agent_name)
+        
+        try:
+            result = await memory.recall_similar_trades(
+                symbol=symbol,
+                action=action,
+                lookback_days=lookback_days,
+                limit=limit
+            )
+            
+            logger.info(
+                "similar_trades_recalled",
+                agent=self.agent_name,
+                trades_found=result.get("trades_found", 0),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(
+                "recall_similar_trades_error",
+                agent=self.agent_name,
+                error=str(e)
+            )
+            return {"error": str(e)}
+    
+    async def get_agent_performance_history(self, lookback_days: int = 30) -> Dict[str, Any]:
+        """Get agent's performance history."""
+        from services.memory_tools import get_memory_tools
+        
+        memory = get_memory_tools(self.agent_name)
+        
+        try:
+            result = await memory.get_agent_performance_history(
+                agent_name=self.agent_name,
+                lookback_days=lookback_days
+            )
+            
+            logger.info(
+                "performance_history_retrieved",
+                agent=self.agent_name,
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(
+                "get_agent_performance_history_error",
+                agent=self.agent_name,
+                error=str(e)
+            )
+            return {"error": str(e)}
+    
+    async def get_market_regime_history(self, lookback_days: int = 60) -> Dict[str, Any]:
+        """Get historical market regime analysis."""
+        from services.memory_tools import get_memory_tools
+        
+        memory = get_memory_tools(self.agent_name)
+        
+        try:
+            result = await memory.get_market_regime_history(lookback_days=lookback_days)
+            
+            logger.info(
+                "market_regime_history_retrieved",
+                agent=self.agent_name,
+                current_regime=result.get("current_regime"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(
+                "get_market_regime_history_error",
+                agent=self.agent_name,
+                error=str(e)
+            )
+            return {"error": str(e)}
+    
+    async def record_trade_insight(
+        self, 
+        symbol: str,
+        insight_type: str,
+        content: str,
+        importance: str = "medium"
+    ) -> Dict[str, Any]:
+        """Record a trading insight for future reference."""
+        from services.memory_tools import get_memory_tools
+        
+        memory = get_memory_tools(self.agent_name)
+        
+        try:
+            result = await memory.record_trade_insight(
+                symbol=symbol,
+                insight_type=insight_type,
+                content=content,
+                importance=importance
+            )
+            
+            logger.info(
+                "trade_insight_recorded",
+                agent=self.agent_name,
+                symbol=symbol,
+                insight_type=insight_type,
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(
+                "record_trade_insight_error",
+                agent=self.agent_name,
+                symbol=symbol,
+                error=str(e)
+            )
+            return {"error": str(e)}
+    
+    # ========== NEW PHASE 3: PORTFOLIO INTELLIGENCE TOOLS ==========
+    
+    async def analyze_portfolio_risk(self) -> Dict[str, Any]:
+        """Analyze portfolio risk comprehensively."""
+        from services.portfolio_intelligence import get_portfolio_intelligence
+        
+        portfolio = get_portfolio_intelligence(self.agent_name)
+        
+        try:
+            result = await portfolio.analyze_portfolio_risk(self.agent_name)
+            
+            logger.info(
+                "portfolio_risk_analyzed",
+                agent=self.agent_name,
+                risk_score=result.get("risk_score"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error("analyze_portfolio_risk_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e)}
+    
+    async def get_sector_exposure(self) -> Dict[str, Any]:
+        """Get portfolio sector exposure breakdown."""
+        from services.portfolio_intelligence import get_portfolio_intelligence
+        
+        portfolio = get_portfolio_intelligence(self.agent_name)
+        
+        try:
+            result = await portfolio.get_sector_exposure(self.agent_name)
+            
+            logger.info("sector_exposure_retrieved", agent=self.agent_name)
+            
+            return result
+        except Exception as e:
+            logger.error("get_sector_exposure_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e)}
+    
+    async def calculate_portfolio_beta(self) -> Dict[str, Any]:
+        """Calculate portfolio beta vs market."""
+        from services.portfolio_intelligence import get_portfolio_intelligence
+        
+        portfolio = get_portfolio_intelligence(self.agent_name)
+        
+        try:
+            result = await portfolio.calculate_portfolio_beta(self.agent_name)
+            
+            logger.info(
+                "portfolio_beta_calculated",
+                agent=self.agent_name,
+                beta=result.get("portfolio_beta"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error("calculate_portfolio_beta_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e)}
+    
+    async def optimize_portfolio_allocation(self) -> Dict[str, Any]:
+        """Get portfolio optimization suggestions."""
+        from services.portfolio_intelligence import get_portfolio_intelligence
+        
+        portfolio = get_portfolio_intelligence(self.agent_name)
+        
+        try:
+            result = await portfolio.optimize_portfolio_allocation(self.agent_name)
+            
+            logger.info(
+                "portfolio_optimization_calculated",
+                agent=self.agent_name,
+                optimization_score=result.get("optimization_score"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error("optimize_portfolio_allocation_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e)}
+    
+    # ========== NEW PHASE 4: ADVANCED REASONING TOOLS ==========
+    
+    async def evaluate_trade_thesis(
+        self, 
+        symbol: str, 
+        thesis: str, 
+        action: str = "buy"
+    ) -> Dict[str, Any]:
+        """Evaluate a trading thesis with structured analysis."""
+        from services.reasoning_tools import get_reasoning_tools
+        
+        symbol = symbol.upper()
+        reasoning = get_reasoning_tools(self.agent_name)
+        
+        try:
+            result = await reasoning.evaluate_trade_thesis(symbol, thesis, action)
+            
+            logger.info(
+                "trade_thesis_evaluated",
+                agent=self.agent_name,
+                symbol=symbol,
+                conviction=result.get("conviction_score"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error("evaluate_trade_thesis_error", agent=self.agent_name, symbol=symbol, error=str(e))
+            return {"error": str(e)}
+    
+    async def compare_scenarios(self, symbol: str) -> Dict[str, Any]:
+        """Compare bull/bear/neutral scenarios."""
+        from services.reasoning_tools import get_reasoning_tools
+        
+        symbol = symbol.upper()
+        reasoning = get_reasoning_tools(self.agent_name)
+        
+        try:
+            result = await reasoning.compare_scenarios(symbol)
+            
+            logger.info(
+                "scenarios_compared",
+                agent=self.agent_name,
+                symbol=symbol,
+                most_likely=result.get("most_likely_scenario"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error("compare_scenarios_error", agent=self.agent_name, symbol=symbol, error=str(e))
+            return {"error": str(e)}
+    
+    async def get_risk_reward_analysis(self, symbol: str, entry_price: float = None) -> Dict[str, Any]:
+        """Calculate risk/reward analysis with stop loss and take profit levels."""
+        from services.reasoning_tools import get_reasoning_tools
+        
+        symbol = symbol.upper()
+        reasoning = get_reasoning_tools(self.agent_name)
+        
+        try:
+            result = await reasoning.get_risk_reward_analysis(symbol, entry_price)
+            
+            logger.info(
+                "risk_reward_analyzed",
+                agent=self.agent_name,
+                symbol=symbol,
+                rr_ratio=result.get("risk_reward_ratio"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error("get_risk_reward_analysis_error", agent=self.agent_name, symbol=symbol, error=str(e))
+            return {"error": str(e)}
+    
+    async def detect_market_anomaly(self, symbol: str) -> Dict[str, Any]:
+        """Detect unusual market activity and anomalies."""
+        from services.reasoning_tools import get_reasoning_tools
+        
+        symbol = symbol.upper()
+        reasoning = get_reasoning_tools(self.agent_name)
+        
+        try:
+            result = await reasoning.detect_market_anomaly(symbol)
+            
+            logger.info(
+                "market_anomaly_checked",
+                agent=self.agent_name,
+                symbol=symbol,
+                anomaly_count=result.get("anomaly_count"),
+            )
+            
+            return result
+        except Exception as e:
+            logger.error("detect_market_anomaly_error", agent=self.agent_name, symbol=symbol, error=str(e))
+            return {"error": str(e)}
+

@@ -239,3 +239,24 @@ class WebSearchResult(Base):
     __table_args__ = (
         Index("idx_query_timestamp", "query", "timestamp"),
     )
+
+
+class TradeInsight(Base):
+    """Agent-recorded trading insights for future reference."""
+    __tablename__ = "trade_insights"
+
+    id = Column(Integer, primary_key=True, index=True)
+    agent_name = Column(String(50), nullable=False, index=True)
+    symbol = Column(String(20), nullable=False, index=True)  # Symbol or "MARKET" for general
+    insight_type = Column(String(50), nullable=False, index=True)  # technical, fundamental, sentiment, pattern
+    content = Column(Text, nullable=False)
+    importance = Column(String(20), default="medium")  # low, medium, high
+    is_active = Column(Boolean, default=True)  # Can be marked as outdated
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    expires_at = Column(DateTime, nullable=True)  # Optional expiration
+    
+    __table_args__ = (
+        Index("idx_agent_symbol_insight", "agent_name", "symbol", "insight_type"),
+        Index("idx_insight_created", "created_at"),
+    )
+
