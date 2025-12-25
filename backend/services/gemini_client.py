@@ -46,9 +46,9 @@ class GeminiClient:
             "gemini-1.5-flash": "gemini-1.5-flash",
             
             # Legacy/Generic redirections -> Default
-            "google/gemini-3-pro": "gemini-3-flash-preview", 
-            "anthropic/claude-4.5-sonnet": "gemini-3-flash-preview",
-            "openai/gpt-4o": "gemini-3-flash-preview",
+            "google/gemini-3-pro": "gemini-3-pro-preview", 
+            "anthropic/claude-4.5-sonnet": "gemini-3-pro-preview",
+            "openai/gpt-4o": "gemini-3-pro-preview",
         }
         
     def _get_api_url(self, model: str) -> str:

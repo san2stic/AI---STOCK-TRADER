@@ -104,17 +104,17 @@ class Settings(BaseSettings):
     crew_deliberation_rounds: int = Field(default=2, ge=1, le=3)
     crew_min_consensus_percent: float = Field(default=66.0, ge=50.0, le=100.0)
     crew_enable_mediator: bool = True
-    crew_mediator_model: str = "google/gemini-2.0-flash-exp"
+    crew_mediator_model: str = "gemini-3-pro-preview"
     crew_vote_weighting: str = "PERFORMANCE_BASED"
     crew_max_messages_per_round: int = Field(default=3, ge=1, le=10)
     
     # Order execution validator
     enable_order_validation: bool = True
-    order_validator_model: str = "google/gemini-2.0-flash-exp"
+    order_validator_model: str = "gemini-3-pro-preview"
     
     # Intelligent decision parsing (using Claude 4.5 Sonnet)
     enable_intelligent_parsing: bool = True
-    claude_parsing_model: str = "google/gemini-2.0-flash-exp"
+    claude_parsing_model: str = "gemini-3-pro-preview"
     parsing_cache_enabled: bool = True
     parsing_fallback_to_regex: bool = True
     
@@ -195,7 +195,7 @@ class Settings(BaseSettings):
 AGENT_CONFIGS = {
     "gpt4": {
         "name": "Titan",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Unshakeable long-term value storage",
         "strategy": "Deep Value",
         "risk_tolerance": "Medium",
@@ -209,7 +209,7 @@ AGENT_CONFIGS = {
     },
     "claude": {
         "name": "Nexus",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Central network of balanced distribution",
         "strategy": "Diversification",
         "risk_tolerance": "Low-Medium",
@@ -223,7 +223,7 @@ AGENT_CONFIGS = {
     },
     "grok": {
         "name": "Viper",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Lethal high-frequency momentum predator",
         "strategy": "Momentum & Catalysts",
         "risk_tolerance": "High",
@@ -238,7 +238,7 @@ AGENT_CONFIGS = {
     },
     "gemini": {
         "name": "Aegis",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Impenetrable shield of capital preservation",
         "strategy": "Risk Management",
         "risk_tolerance": "Low",
@@ -252,7 +252,7 @@ AGENT_CONFIGS = {
     },
     "deepseek": {
         "name": "Surge",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Electric reactive flow chaser",
         "strategy": "Sector Rotation",
         "risk_tolerance": "Medium-High",
@@ -265,7 +265,7 @@ AGENT_CONFIGS = {
     },
     "mistral": {
         "name": "Ranger",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Resourceful adaptive survivor",
         "strategy": "Active Trading",
         "risk_tolerance": "Medium",
@@ -278,7 +278,7 @@ AGENT_CONFIGS = {
     },
     "researcher": {
         "name": "Oracle",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "All-seeing data synthesizer",
         "strategy": "Fundamental Analysis",
         "risk_tolerance": "Low",
@@ -291,7 +291,7 @@ AGENT_CONFIGS = {
     },
     "risk_manager": {
         "name": "Sentinel",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Unsleeping guardian of system integrity",
         "strategy": "Hedging & Protection",
         "risk_tolerance": "Very Low",
@@ -303,7 +303,7 @@ AGENT_CONFIGS = {
     },
     "crypto_specialist": {
         "name": "Cipher",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Decoder of cryptographic alpha chains",
         "strategy": "Crypto Momentum",
         "risk_tolerance": "High",
@@ -316,7 +316,7 @@ AGENT_CONFIGS = {
     },
     "position_manager": {
         "name": "Warden",
-        "model": "google/gemini-3-pro",
+        "model": "gemini-3-pro-preview",
         "personality": "Vigilant overseer of portfolio state",
         "strategy": "Position Optimization",
         "risk_tolerance": "Medium",
