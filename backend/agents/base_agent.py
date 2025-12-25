@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import json
 import structlog
 from config import get_settings, AGENT_CONFIGS
-from services.openrouter import get_openrouter_client
+from services.vertex_client import get_vertex_client
 from tools.trading_tools import TRADING_TOOLS, TradingTools
 from models.database import Decision, AgentReflection, Trade, TradeStatus, Portfolio
 from database import get_db
@@ -29,73 +29,19 @@ class BaseAgent(ABC):
         self.strategy = self.config["strategy"]
         self.risk_tolerance = self.config["risk_tolerance"]
         
-        # Dynamic model selection
-        settings = get_settings()
-        if getattr(settings, 'enable_dynamic_models', True):
-            # Use dynamic model selection
-            from services.model_selector import get_model_selector
-            selector = get_model_selector()
-            
-            # Determine category for this agent
-            category = selector.get_category_for_agent(agent_key, self.personality)
-            
-            # Dynamic but Static: Prefer configured model if available
-            preferred_model = self.config["model"]
-            best_model = None
-            
-            try:
-                import asyncio
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Running in async context is tricky for synchronous init
-                    # For safety in async context, we might default to static or need await
-                    # But since this is __init__, we can't await. 
-                    # We'll rely on the selector's cache or fallback.
-                    pass
-                else:
-                    # Check if preferred model is available
-                    is_available = asyncio.run(selector.is_model_available(preferred_model))
-                    
-                    if is_available:
-                        best_model = preferred_model
-                    else:
-                        # Fallback to category best if preferred is down
-                        models = asyncio.run(selector.select_best_models())
-                        best_model = models.get(category, preferred_model)
-                
-                # If we couldn't determine (e.g. running loop), default to config
-                self.model = best_model if best_model else preferred_model
-                self.model_category = category
-                
-                logger.info(
-                    "agent_model_selected",
-                    name=self.name,
-                    category=category,
-                    model=self.model,
-                    source="config" if self.model == preferred_model else "dynamic_fallback"
-                )
-            except Exception as e:
-                # Fallback to static model if dynamic selection fails
-                self.model = self.config["model"]
-                self.model_category = "finance"
-                logger.warning(
-                    "agent_dynamic_model_fallback",
-                    name=self.name,
-                    error=str(e),
-                    using_static=self.model,
-                )
-        else:
-            # Use static model from config
-            self.model = self.config["model"]
-            self.model_category = "finance"
+        # Vertex AI - force configured model (Claude 3.5 Sonnet)
+        # Dynamic selection is disabled in favor of standardized high-performance model
+        self.model = self.config["model"]
+        self.model_category = "finance"
         
-        self.openrouter = get_openrouter_client()
+        self.vertex_client = get_vertex_client()
         self.tools = TradingTools(self.name)
         
         logger.info(
             "agent_initialized",
             name=self.name,
             model=self.model,
+            provider="vertex_ai",
             strategy=self.strategy,
         )
     
@@ -137,7 +83,7 @@ class BaseAgent(ABC):
         
         try:
             # Call AI model with function calling tools
-            response = await self.openrouter.call_agent(
+            response = await self.vertex_client.call_agent(
                 model=self.model,
                 messages=messages,
                 tools=TRADING_TOOLS,
@@ -145,8 +91,8 @@ class BaseAgent(ABC):
             )
             
             # Parse response
-            tool_calls = self.openrouter.parse_tool_calls(response)
-            message_content = self.openrouter.get_message_content(response)
+            tool_calls = self.vertex_client.parse_tool_calls(response)
+            message_content = self.vertex_client.get_message_content(response)
             
             # Log decision
             decision = await self._log_decision(
@@ -321,13 +267,13 @@ Be brutally honest with yourself. Your future performance depends on this reflec
         ]
         
         try:
-            response = await self.openrouter.call_agent(
+            response = await self.vertex_client.call_agent(
                 model=self.model,
                 messages=messages,
                 temperature=0.8,
             )
             
-            reflection_text = self.openrouter.get_message_content(response)
+            reflection_text = self.vertex_client.get_message_content(response)
             
             # Parse reflection sections
             went_well = ""

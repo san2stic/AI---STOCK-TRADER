@@ -10,14 +10,12 @@ interface ModelInfo {
         personality: string;
         strategy: string;
     }>;
-    categories: Record<string, string>;
-    dynamic_enabled: boolean;
+    provider: string;
 }
 
 export default function ModelDisplay() {
     const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchModels = async () => {
@@ -32,19 +30,6 @@ export default function ModelDisplay() {
             setError(err instanceof Error ? err.message : "Failed to load models");
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const handleRefresh = async () => {
-        setIsRefreshing(true);
-        try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            await fetch(`${apiUrl}/api/models/refresh`, { method: "POST" });
-            await fetchModels();
-        } catch (err) {
-            setError("Failed to refresh models");
-        } finally {
-            setIsRefreshing(false);
         }
     };
 
@@ -79,89 +64,37 @@ export default function ModelDisplay() {
         );
     }
 
-    const getCategoryColor = (category: string) => {
-        switch (category) {
-            case "finance": return "from-green-500 to-emerald-600";
-            case "data_analysis": return "from-blue-500 to-cyan-600";
-            case "general": return "from-purple-500 to-pink-600";
-            case "parsing": return "from-orange-500 to-amber-600";
-            default: return "from-gray-500 to-slate-600";
-        }
-    };
-
-    const getCategoryIcon = (category: string) => {
-        switch (category) {
-            case "finance": return "💹";
-            case "data_analysis": return "📊";
-            case "general": return "🤖";
-            case "parsing": return "📝";
-            default: return "⚙️";
-        }
-    };
-
     return (
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 border border-slate-700 shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
-                        <span className="text-2xl">🧠</span>
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
+                        <span className="text-2xl">☁️</span>
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white">AI Models</h2>
-                        <p className="text-sm text-slate-400">
-                            {modelInfo.dynamic_enabled ? "Dynamic Selection Active" : "Static Configuration"}
+                        <h2 className="text-xl font-bold text-white">AI Infrastructure</h2>
+                        <p className="text-sm text-blue-400 font-medium">
+                            {modelInfo.provider || "Google Cloud Vertex AI"}
                         </p>
                     </div>
                 </div>
 
-                <button
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                    <svg
-                        className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    {isRefreshing ? "Refreshing..." : "Refresh"}
-                </button>
-            </div>
-
-            {/* Category Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                {Object.entries(modelInfo.categories).map(([category, model]) => (
-                    <div
-                        key={category}
-                        className="bg-slate-800/50 rounded-xl p-3 border border-slate-700"
-                    >
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg">{getCategoryIcon(category)}</span>
-                            <span className="text-xs font-medium text-slate-400 uppercase">
-                                {category.replace('_', ' ')}
-                            </span>
-                        </div>
-                        <p className="text-xs text-white font-mono truncate" title={model}>
-                            {model.split('/').pop()}
-                        </p>
-                    </div>
-                ))}
+                <div className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-mono border border-blue-500/30">
+                    Claude 3.5 Sonnet
+                </div>
             </div>
 
             {/* Agent Models */}
             <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">
-                    Agent Models
+                    Active Agents
                 </h3>
-                <div className="grid gap-3">
+                <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
                     {Object.entries(modelInfo.agents).map(([key, agent]) => (
                         <div
                             key={key}
-                            className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 hover:border-slate-600 transition-all duration-200"
+                            className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-200"
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
@@ -169,21 +102,18 @@ export default function ModelDisplay() {
                                         <h4 className="font-semibold text-white truncate">
                                             {agent.name}
                                         </h4>
-                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r ${getCategoryColor(agent.category)} text-white`}>
-                                            {getCategoryIcon(agent.category)} {agent.category.replace('_', ' ')}
-                                        </span>
                                     </div>
 
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs text-slate-500 w-20">Model:</span>
-                                            <code className="text-xs font-mono text-green-400 bg-slate-900/50 px-2 py-0.5 rounded">
-                                                {agent.model}
+                                            <span className="text-xs text-slate-500 w-16">Core:</span>
+                                            <code className="text-xs font-mono text-cyan-400 bg-slate-900/50 px-2 py-0.5 rounded">
+                                                Claude 3.5 Sonnet
                                             </code>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs text-slate-500 w-20">Strategy:</span>
-                                            <span className="text-xs text-slate-300">{agent.strategy}</span>
+                                            <span className="text-xs text-slate-500 w-16">Strategy:</span>
+                                            <span className="text-xs text-slate-300 truncate">{agent.strategy}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -196,11 +126,11 @@ export default function ModelDisplay() {
             {/* Footer Info */}
             <div className="mt-6 pt-4 border-t border-slate-700">
                 <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>
-                        Models are {modelInfo.dynamic_enabled ? 'automatically selected' : 'statically configured'} and cached for performance
+                        Enterprise-grade infrastructure via Google Cloud Vertex AI
                     </span>
                 </div>
             </div>

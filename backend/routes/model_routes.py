@@ -15,44 +15,26 @@ settings = get_settings()
 @router.get("/current")
 async def get_current_models() -> Dict[str, Any]:
     """
-    Get currently selected models for all agents and categories.
-    
-    Returns:
-        Dictionary with agent models and category models
+    Get currently selected models for all agents.
+    For Vertex AI migration, all agents use the same high-performance model.
     """
     try:
-        selector = get_model_selector()
-        
-        # Get best models for each category
-        category_models = await selector.select_best_models()
-        
-        # Map agents to their models
+        # Static configuration for Vertex AI
         agent_models = {}
         for agent_key, config in AGENT_CONFIGS.items():
-            # Determine category for this agent
-            category = selector.get_category_for_agent(
-                agent_key, 
-                config.get("personality", "")
-            )
-            
-            # Get dynamic model if enabled, otherwise use static
-            if getattr(settings, 'enable_dynamic_models', True):
-                model = category_models.get(category, config.get("model"))
-            else:
-                model = config.get("model")
-            
             agent_models[agent_key] = {
                 "name": config.get("name"),
-                "model": model,
-                "category": category,
+                "model": config.get("model"),
+                "category": "finance",  # Unified category
                 "personality": config.get("personality"),
                 "strategy": config.get("strategy"),
             }
         
         return {
             "agents": agent_models,
-            "categories": category_models,
-            "dynamic_enabled": getattr(settings, 'enable_dynamic_models', True),
+            "categories": {"finance": "anthropic/claude-4.5-sonnet"},
+            "dynamic_enabled": False,
+            "provider": "Google Cloud Vertex AI"
         }
         
     except Exception as e:

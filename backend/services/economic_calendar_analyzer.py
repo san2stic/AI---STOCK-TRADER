@@ -7,7 +7,7 @@ from typing import Optional, List, Dict, Any
 import structlog
 import json
 from services.economic_calendar import get_economic_calendar, EventImpact
-from services.openrouter import get_openrouter_client
+from services.vertex_client import get_vertex_client
 
 logger = structlog.get_logger()
 
@@ -20,10 +20,10 @@ class EconomicCalendarAnalyzer:
         Initialize the analyzer.
         
         Args:
-            model: OpenRouter model to use for analysis
+            model: Model to use (mapped to Vertex AI)
         """
-        self.model = model
-        self.openrouter = get_openrouter_client()
+        self.model = "anthropic/claude-4.5-sonnet"  # Force use of Vertex model
+        self.vertex_client = get_vertex_client()
         self.calendar = get_economic_calendar()
         self.cache: Optional[Dict[str, Any]] = None
         self.cache_time: Optional[datetime] = None
@@ -81,7 +81,7 @@ class EconomicCalendarAnalyzer:
                 events_count=len(events)
             )
             
-            response = await self.openrouter.call_agent(
+            response = await self.vertex_client.call_agent(
                 model=self.model,
                 messages=[
                     {
@@ -98,7 +98,7 @@ class EconomicCalendarAnalyzer:
             )
             
             # Parse LLM response
-            analysis_text = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+            analysis_text = self.vertex_client.get_message_content(response)
             
             if not analysis_text:
                 raise ValueError("Empty response from LLM")

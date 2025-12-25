@@ -50,9 +50,11 @@ services:
       - INITIAL_CAPITAL=${INITIAL_CAPITAL}
       - RUN_ANALYSIS_ON_STARTUP=${RUN_ANALYSIS_ON_STARTUP:-false}
 
-      # OpenRouter API
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL}
+      # Vertex AI (Google Cloud)
+      - VERTEX_AI_PROJECT_ID=${VERTEX_AI_PROJECT_ID}
+      - VERTEX_AI_LOCATION=${VERTEX_AI_LOCATION}
+      - VERTEX_AI_MODEL=${VERTEX_AI_MODEL}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/credentials.json # Default path inside container
 
       # Alpaca Markets API
       - ALPACA_API_KEY=${ALPACA_API_KEY}
@@ -152,6 +154,9 @@ services:
     volumes:
       - ./backend:/app
       - logs_data:/app/logs
+      # Mount credentials: Put your JSON key at ./secrets/credentials.json on host
+      # Or change source path to match your key location
+      - ./secrets:/app/secrets:ro
     ports:
       - "8000:8000"
     depends_on:

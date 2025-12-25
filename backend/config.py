@@ -14,9 +14,10 @@ class Settings(BaseSettings):
     trading_mode: str = Field(default="PAPER", description="PAPER or LIVE")
     initial_capital: float = Field(default=10000.0, ge=100.0)
     
-    # OpenRouter API
-    openrouter_api_key: str
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    # Vertex AI (Google Cloud)
+    vertex_ai_project_id: str = "project-id-placeholder"
+    vertex_ai_location: str = "us-central1"
+    vertex_ai_model: str = "claude-3-5-sonnet@20240620"
     
     # Alpaca Markets (Free API)
     alpaca_api_key: str
@@ -195,7 +196,7 @@ class Settings(BaseSettings):
 AGENT_CONFIGS = {
     "gpt4": {
         "name": "GPT-4 Holder",
-        "model": "openai/gpt-4o",
+        "model": "anthropic/claude-4.5-sonnet",
         "personality": "Conservative long-term investor",
         "strategy": "Buy & Hold",
         "risk_tolerance": "Medium",
@@ -223,7 +224,7 @@ AGENT_CONFIGS = {
     },
     "grok": {
         "name": "Grok Sniper",
-        "model": "x-ai/grok-4",
+        "model": "anthropic/claude-4.5-sonnet",
         "personality": "Aggressive opportunistic trader",
         "strategy": "Momentum & Catalysts",
         "risk_tolerance": "High",
@@ -238,7 +239,7 @@ AGENT_CONFIGS = {
     },
     "gemini": {
         "name": "Gemini Gestionnaire",
-        "model": "google/gemini-3-pro-preview",
+        "model": "anthropic/claude-4.5-sonnet",
         "personality": "Risk-averse capital preserver",
         "strategy": "Risk Management",
         "risk_tolerance": "Low",
@@ -252,7 +253,7 @@ AGENT_CONFIGS = {
     },
     "deepseek": {
         "name": "DeepSeek Nerveux",
-        "model": "deepseek/deepseek-chat",
+        "model": "anthropic/claude-4.5-sonnet",
         "personality": "Reactive momentum chaser",
         "strategy": "Sector Rotation",
         "risk_tolerance": "Medium-High",
@@ -265,7 +266,7 @@ AGENT_CONFIGS = {
     },
     "mistral": {
         "name": "Mistral Marine",
-        "model": "mistralai/mistral-large-2512",
+        "model": "anthropic/claude-4.5-sonnet",
         "personality": "Persistent active trader with fallbacks",
         "strategy": "Active Trading",
         "risk_tolerance": "Medium",
