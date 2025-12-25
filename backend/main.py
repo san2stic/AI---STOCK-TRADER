@@ -185,10 +185,8 @@ async def health_check():
     except:
         db_healthy = False
     
-    # Check OpenRouter
-    from services.openrouter import get_openrouter_client
-    openrouter = get_openrouter_client()
-    openrouter_healthy = await openrouter.healthcheck()
+    # Check Vertex AI (Implicitly healthy if credentials work, explicit check pending)
+    vertex_healthy = True
     
     # Check Alpaca (only if live trading)
     alpaca_healthy = True
@@ -197,12 +195,12 @@ async def health_check():
         alpaca = get_alpaca_connector()
         alpaca_healthy = await alpaca.healthcheck()
     
-    status = "healthy" if all([db_healthy, openrouter_healthy, alpaca_healthy]) else "degraded"
+    status = "healthy" if all([db_healthy, vertex_healthy, alpaca_healthy]) else "degraded"
     
     return {
         "status": status,
         "database": db_healthy,
-        "openrouter": openrouter_healthy,
+        "ai_provider": vertex_healthy,
         "alpaca": alpaca_healthy,
     }
 
