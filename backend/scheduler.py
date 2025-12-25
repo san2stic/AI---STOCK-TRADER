@@ -739,6 +739,114 @@ class TradingOrchestrator:
                 })
             
             logger.info("daily_report_complete", agents=len(report_data))
+    
+    async def run_position_analysis(self):
+        """
+        Run position analysis cycle - Position Manager analyzes all open positions.
+        This runs every hour independently of the main trading cycle.
+        """
+        logger.info("position_analysis_start")
+        
+        try:
+            from database import get_db
+            from models.database import Portfolio, Trade, TradeStatus
+            from tools.trading_tools import TradingTools
+            
+            with get_db() as db:
+                # Get all agents with open positions
+                portfolios = db.query(Portfolio).all()
+                
+                analysis_results = []
+                
+                for portfolio in portfolios:
+                    # Get agent's open positions
+                    positions = []
+                    for pos in portfolio.positions:
+                        # Calculate current P&L for each position
+                        current_pnl_percent = pos.get("pnl_percent", 0) if isinstance(pos, dict) else 0
+                        
+                        positions.append({
+                            "symbol": pos.get("symbol") if isinstance(pos, dict) else pos,
+                            "quantity": pos.get("quantity", 0) if isinstance(pos, dict) else 0,
+                            "avg_price": pos.get("avg_price", 0) if isinstance(pos, dict) else 0,
+                            "current_pnl_percent": current_pnl_percent,
+                        })
+                    
+                    # Analyze portfolio health
+                    total_positions = len(positions)
+                    winning_positions = sum(1 for p in positions if p["current_pnl_percent"] > 0)
+                    losing_positions = sum(1 for p in positions if p["current_pnl_percent"] < 0)
+                    
+                    # Check for positions needing attention (> -10% or > +20%)
+                    needs_attention = [
+                        p for p in positions 
+                        if p["current_pnl_percent"] < -10 or p["current_pnl_percent"] > 20
+                    ]
+                    
+                    analysis = {
+                        "agent": portfolio.agent_name,
+                        "total_positions": total_positions,
+                        "winning": winning_positions,
+                        "losing": losing_positions,
+                        "portfolio_pnl": portfolio.total_pnl_percent,
+                        "needs_attention": needs_attention,
+                        "recommendation": self._generate_position_recommendation(
+                            portfolio.total_pnl_percent, 
+                            winning_positions, 
+                            losing_positions,
+                            needs_attention
+                        ),
+                    }
+                    
+                    analysis_results.append(analysis)
+                    
+                    logger.info(
+                        "position_analysis_agent",
+                        agent=portfolio.agent_name,
+                        positions=total_positions,
+                        winning=winning_positions,
+                        losing=losing_positions,
+                        attention_needed=len(needs_attention),
+                    )
+                
+                # Broadcast position analysis to WebSocket clients
+                if self.ws_manager:
+                    await self.ws_manager.broadcast({
+                        "type": "position_analysis",
+                        "data": analysis_results,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+                
+                logger.info("position_analysis_complete", agents=len(analysis_results))
+                
+        except Exception as e:
+            logger.error("position_analysis_error", error=str(e))
+    
+    def _generate_position_recommendation(self, portfolio_pnl: float, winning: int, losing: int, needs_attention: list) -> str:
+        """Generate recommendation based on position analysis."""
+        recommendations = []
+        
+        # Overall portfolio health
+        if portfolio_pnl < -5:
+            recommendations.append("CAUTION: Portfolio down significantly. Consider reducing exposure.")
+        elif portfolio_pnl > 15:
+            recommendations.append("Strong performance. Consider taking partial profits.")
+        
+        # Position balance
+        total = winning + losing
+        if total > 0:
+            win_rate = winning / total
+            if win_rate < 0.4:
+                recommendations.append(f"Low win rate ({win_rate:.0%}). Review entry strategy.")
+        
+        # Positions needing attention
+        for pos in needs_attention:
+            if pos["current_pnl_percent"] < -10:
+                recommendations.append(f"{pos['symbol']}: Down {abs(pos['current_pnl_percent']):.1f}%. Review stop-loss.")
+            elif pos["current_pnl_percent"] > 20:
+                recommendations.append(f"{pos['symbol']}: Up {pos['current_pnl_percent']:.1f}%. Consider profit-taking.")
+        
+        return " | ".join(recommendations) if recommendations else "All positions healthy. No action needed."
 
 
 def start_scheduler(ws_manager=None) -> AsyncIOScheduler:
@@ -774,6 +882,20 @@ def start_scheduler(ws_manager=None) -> AsyncIOScheduler:
     )
     
     scheduler.start()
-    logger.info("scheduler_started", interval_minutes=interval)
+    
+    # Position analysis cycle every hour (runs independently of trading cycle)
+    position_interval = getattr(settings, 'position_analysis_interval_minutes', 60)
+    
+    scheduler.add_job(
+        orchestrator.run_position_analysis,
+        CronTrigger(minute=f"*/{position_interval}", timezone="UTC"),
+        id="position_analysis",
+    )
+    
+    logger.info(
+        "scheduler_started", 
+        trading_interval_minutes=interval,
+        position_analysis_interval_minutes=position_interval
+    )
     
     return scheduler

@@ -669,48 +669,141 @@ Be brutally honest with yourself. Your future performance depends on this reflec
 {json.dumps(self._get_agent_watchlist(), indent=2)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧠 CHAIN-OF-THOUGHT REASONING PROCESS
+🧠 ADVANCED CHAIN-OF-THOUGHT REASONING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {asset_specific_instructions}
 
-You MUST follow this structured reasoning process:
+You MUST follow this 7-step structured reasoning process:
 
-**STEP 1: SITUATIONAL AWARENESS** 🔍
-  └─ What is the overall market sentiment right now? (Fear/Greed?)
-  └─ Are there any high-impact news or events?
-  └─ Use: `get_market_overview`, `get_fear_greed_index`
+╔══════════════════════════════════════════════════╗
+║ STEP 1: MARKET REGIME IDENTIFICATION 🔍         ║
+╚══════════════════════════════════════════════════╝
+QUESTION: What is the current market environment?
+- Is it BULLISH, BEARISH, or SIDEWAYS?
+- What is the Fear & Greed Index? (Extreme values = caution)
+- Are we pre/post a major economic event?
 
-**STEP 2: OPPORTUNITY SCANNING** 🎯
-  └─ What opportunities exist in my preferred sectors?
-  └─ Check my WATCHLIST for setups I'm tracking.
-  └─ **Anti-Hallucination**: If you don't know a price, you MUST use `get_price` or `search_news`.
-  └─ Use: `get_available_stocks`, `manage_watchlist`
+TOOLS: `get_market_regime`, `get_fear_greed_index`, `get_economic_events`
 
-**STEP 3: DEEP ANALYSIS** 📊
-  └─ For top candidates, perform detailed technical analysis.
-  └─ **Confirmation**: Do Volume, RSI, and Trend align?
-  └─ Use: `get_technical_indicators`, `get_market_sentiment`, `get_conviction_score`
+⚠️ This determines your ENTIRE approach. Get it right.
 
-**STEP 4: RISK ASSESSMENT** ⚠️
-  └─ **Capital Preservation**: Will this trade expose me to too much risk?
-  └─ Position Sizing: Use volatility (ATR) to size the bet.
-  └─ Use: `get_portfolio`, `get_correlation_check`, `get_optimal_position_size`
+╔══════════════════════════════════════════════════╗
+║ STEP 2: NEWS & CATALYST SCAN 📰                 ║
+╚══════════════════════════════════════════════════╝
+QUESTION: Are there any material news or catalysts?
+- Breaking news that could move markets?
+- Upcoming earnings for my holdings/watchlist?
+- Any macro events (Fed, CPI, NFP) within 48hrs?
 
-**STEP 5: DECISION & ACTION** ✅
-  └─ Based on ALL above analysis, what is the highest-conviction action?
-  └─ Clearly state: ACTION, SYMBOL, QUANTITY, KEY REASONING.
-  └─ **Emotion Check**: Are you chasing? Are you panic selling? Be rational.
-  └─ Use: `buy_stock` / `sell_stock` (or crypto equivalents).
+TOOLS: `search_news`, `search_web`, `get_earnings_calendar`
+
+⛔ ANTI-HALLUCINATION: If you don't know recent news, USE THE TOOL. Never assume.
+
+╔══════════════════════════════════════════════════╗
+║ STEP 3: OPPORTUNITY IDENTIFICATION 🎯           ║
+╚══════════════════════════════════════════════════╝
+QUESTION: What opportunities align with my strategy?
+- Check my WATCHLIST first - am I tracking any setups?
+- Scan my preferred universe for interesting moves
+- Any extreme moves (dips to buy or pumps to fade)?
+
+TOOLS: `manage_watchlist`, `get_available_stocks`, `get_available_crypto_pairs`
+
+🎯 Focus on YOUR edge, not random opportunities.
+
+╔══════════════════════════════════════════════════╗
+║ STEP 4: TECHNICAL VALIDATION 📊                 ║
+╚══════════════════════════════════════════════════╝
+QUESTION: Do the technicals CONFIRM my thesis?
+- What does RSI say? Overbought/Oversold?
+- Is there trend confirmation (ADX > 25)?
+- Any chart patterns (double bottom, breakout)?
+- Multi-timeframe alignment?
+
+TOOLS: `get_technical_indicators`, `get_advanced_indicators`, `detect_chart_patterns`, `get_conviction_score`
+
+✅ If technicals conflict with thesis → ABORT or REDUCE SIZE.
+
+╔══════════════════════════════════════════════════╗
+║ STEP 5: RISK QUANTIFICATION ⚠️                  ║
+╚══════════════════════════════════════════════════╝
+QUESTION: What is the EXACT risk of this trade?
+- What is my STOP-LOSS level? (Calculate BEFORE entry)
+- How much of portfolio am I risking? (Max 2% per trade)
+- What is the correlation with existing holdings?
+- What is my Risk:Reward ratio? (Must be ≥ 2:1)
+
+TOOLS: `get_optimal_position_size`, `get_correlation_check`, `get_portfolio`
+
+📐 FORMULA: Position Size = (Portfolio × Risk%) / Stop Distance
+
+╔══════════════════════════════════════════════════╗
+║ STEP 6: EMOTIONAL CHECK 🧘                      ║
+╚══════════════════════════════════════════════════╝
+QUESTION: Am I thinking RATIONALLY?
+- Am I experiencing FOMO? (Stock up big = dangerous)
+- Am I experiencing FEAR? (Selling because scared, not data)
+- Am I revenge trading? (Trying to recover losses)
+- Would I take this trade with fresh eyes tomorrow?
+
+CHECKLIST:
+□ I am NOT chasing a move that already happened
+□ I am NOT panic selling due to a red day
+□ I am NOT trying to "get back" at the market
+□ I would recommend this trade to a colleague
+
+⛔ If ANY answer is NO → DO NOT TRADE. Step away.
+
+╔══════════════════════════════════════════════════╗
+║ STEP 7: DECISION & EXECUTION ✅                 ║
+╚══════════════════════════════════════════════════╝
+After completing steps 1-6, make your decision:
+
+FORMAT YOUR DECISION AS:
+```
+DECISION: [BUY/SELL/HOLD]
+SYMBOL: [TICKER]
+QUANTITY: [AMOUNT] (calculated with risk formula)
+STOP-LOSS: [PRICE/LEVEL]
+TARGET: [PRICE/LEVEL]
+RISK:REWARD: [X:Y]
+REASONING: [2-3 sentences explaining WHY]
+CONFIDENCE: [LOW/MEDIUM/HIGH] with justification
+```
+
+If HOLD: Explain what would need to change for you to act.
+
+TOOLS: `buy_stock`, `sell_stock`, `buy_crypto`, `sell_crypto`
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚡ IMPORTANT REMINDERS:
-- Apply lessons from your past experience (see above).
+🎓 META-COGNITION (Quality Check Your Thinking)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before finalizing, ask yourself:
+- Did I skip any steps? (If yes, go back)
+- Am I relying on data from tools or assumptions?
+- Have I considered what could go WRONG?
+- Is my confidence calibrated to my actual edge?
+- Would past-me (from reflections above) approve?
+
+QUALITY SCORE YOUR ANALYSIS:
+- Used 5+ relevant tools = HIGH quality
+- Used 3-4 tools = MEDIUM quality
+- Used 0-2 tools = LOW quality → Reconsider trading
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ CRITICAL REMINDERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 - **Personality**: {self.personality}
-- Do NOT rush - thorough analysis beats quick decisions.
-- If a stock is up >20% today, treat it with extreme caution (FOMO trap).
+- Apply lessons from your PAST EXPERIENCE (see errors section above)
+- If stock is UP >20% today → 90% chance you're late. WAIT.
+- If you're unsure → HOLD is always an option. Cash is a position.
+- NEVER guess prices or news. ALWAYS verify with tools.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Now, begin your Chain-of-Thought analysis:
+Now, begin your structured Chain-of-Thought analysis:
 """
         return context
     

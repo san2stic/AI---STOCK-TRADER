@@ -81,7 +81,8 @@ class Settings(BaseSettings):
     market_strategy: str = "ANY"  # ANY or ALL
     
     # Trading configuration
-    trading_interval_minutes: int = Field(default=30, ge=5, le=120)
+    trading_interval_minutes: int = Field(default=240, ge=5, le=480)  # 4h default, max 8h
+    position_analysis_interval_minutes: int = Field(default=60, ge=15, le=180)  # Position check every hour
     enable_extended_hours: bool = False
     enforce_market_hours: bool = True  # Set to False to ignore all market hours
     run_analysis_on_startup: bool = False  # Run market analysis when container starts (disabled by default for faster startup)
@@ -312,6 +313,20 @@ AGENT_CONFIGS = {
         "preferred_crypto_pairs": ["SOLUSDT", "AVAXUSDT", "SUIUSDT", "NEARUSDT", "PEPEUSDT"],
         "crypto_risk_multiplier": 1.0,  # Full position sizing
         "active_market_types": ["CRYPTO"],  # New: specifically for crypto
+    },
+    "position_manager": {
+        "name": "Position Guardian",
+        "model": "anthropic/claude-4.5-sonnet",
+        "personality": "Vigilant position monitor focused on analyzing and optimizing open positions",
+        "strategy": "Position Optimization",
+        "risk_tolerance": "Medium",
+        "trading_frequency": "Low",
+        "focus_sectors": ["All"],
+        "preferred_symbols": [],
+        "preferred_crypto_pairs": [],
+        "crypto_risk_multiplier": 0.5,
+        "is_support_agent": True,  # Support agent, doesn't initiate new trades
+        "position_check_interval_hours": 1,  # Check positions every hour
     },
 }
 
