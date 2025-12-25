@@ -195,10 +195,10 @@ class Settings(BaseSettings):
 # Agent personality configurations
 AGENT_CONFIGS = {
     "gpt4": {
-        "name": "GPT-4 Holder",
+        "name": "Titan",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Conservative long-term investor",
-        "strategy": "Buy & Hold",
+        "personality": "Unshakeable long-term value storage",
+        "strategy": "Deep Value",
         "risk_tolerance": "Medium",
         "trading_frequency": "Low",
         "focus_sectors": ["Technology", "Consumer"],
@@ -209,9 +209,9 @@ AGENT_CONFIGS = {
         "min_holding_days": 7,
     },
     "claude": {
-        "name": "Claude Équilibré",
+        "name": "Nexus",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Prudent diversified portfolio manager",
+        "personality": "Central network of balanced distribution",
         "strategy": "Diversification",
         "risk_tolerance": "Low-Medium",
         "trading_frequency": "Medium",
@@ -223,9 +223,9 @@ AGENT_CONFIGS = {
         "rebalance_frequency_days": 30,
     },
     "grok": {
-        "name": "Grok Sniper",
+        "name": "Viper",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Aggressive opportunistic trader",
+        "personality": "Lethal high-frequency momentum predator",
         "strategy": "Momentum & Catalysts",
         "risk_tolerance": "High",
         "trading_frequency": "High",
@@ -238,9 +238,9 @@ AGENT_CONFIGS = {
         "min_holding_hours": 4,
     },
     "gemini": {
-        "name": "Gemini Gestionnaire",
+        "name": "Aegis",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Risk-averse capital preserver",
+        "personality": "Impenetrable shield of capital preservation",
         "strategy": "Risk Management",
         "risk_tolerance": "Low",
         "trading_frequency": "Low",
@@ -252,9 +252,9 @@ AGENT_CONFIGS = {
         "use_technical_analysis": True,
     },
     "deepseek": {
-        "name": "DeepSeek Nerveux",
+        "name": "Surge",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Reactive momentum chaser",
+        "personality": "Electric reactive flow chaser",
         "strategy": "Sector Rotation",
         "risk_tolerance": "Medium-High",
         "trading_frequency": "High",
@@ -265,9 +265,9 @@ AGENT_CONFIGS = {
         "pivot_threshold": 0.15,  # Pivot if sector moves 15%
     },
     "mistral": {
-        "name": "Mistral Marine",
+        "name": "Ranger",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Persistent active trader with fallbacks",
+        "personality": "Resourceful adaptive survivor",
         "strategy": "Active Trading",
         "risk_tolerance": "Medium",
         "trading_frequency": "Medium",
@@ -278,9 +278,9 @@ AGENT_CONFIGS = {
         "enable_tool_fallback": True,
     },
     "researcher": {
-        "name": "Researcher",
+        "name": "Oracle",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Deep analytical researcher focused on macro trends and news",
+        "personality": "All-seeing data synthesizer",
         "strategy": "Fundamental Analysis",
         "risk_tolerance": "Low",
         "trading_frequency": "Low",
@@ -291,9 +291,9 @@ AGENT_CONFIGS = {
         "is_support_agent": True,  # New flag for non-trading agents
     },
     "risk_manager": {
-        "name": "Risk Guardian",
+        "name": "Sentinel",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Strict risk manager focused on capital preservation",
+        "personality": "Unsleeping guardian of system integrity",
         "strategy": "Hedging & Protection",
         "risk_tolerance": "Very Low",
         "trading_frequency": "Medium",
@@ -303,9 +303,9 @@ AGENT_CONFIGS = {
         "is_support_agent": True,
     },
     "crypto_specialist": {
-        "name": "Crypto Zenith",
+        "name": "Cipher",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "High-frequency crypto arbitrage and momentum trader",
+        "personality": "Decoder of cryptographic alpha chains",
         "strategy": "Crypto Momentum",
         "risk_tolerance": "High",
         "trading_frequency": "Very High",
@@ -316,9 +316,9 @@ AGENT_CONFIGS = {
         "active_market_types": ["CRYPTO"],  # New: specifically for crypto
     },
     "position_manager": {
-        "name": "Position Guardian",
+        "name": "Warden",
         "model": "anthropic/claude-4.5-sonnet",
-        "personality": "Vigilant position monitor focused on analyzing and optimizing open positions",
+        "personality": "Vigilant overseer of portfolio state",
         "strategy": "Position Optimization",
         "risk_tolerance": "Medium",
         "trading_frequency": "Low",
