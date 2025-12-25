@@ -271,6 +271,44 @@ AGENT_CONFIGS = {
         "crypto_risk_multiplier": 0.7,  # 70% position size
         "enable_tool_fallback": True,
     },
+    "researcher": {
+        "name": "Researcher",
+        "model": "anthropic/claude-3.5-sonnet",
+        "personality": "Deep analytical researcher focused on macro trends and news",
+        "strategy": "Fundamental Analysis",
+        "risk_tolerance": "Low",
+        "trading_frequency": "Low",
+        "focus_sectors": ["Macro", "News", "Earnings"],
+        "preferred_symbols": [],
+        "crypto_risk_multiplier": 0.0,  # Purely research
+        "min_holding_days": 0,
+        "is_support_agent": True,  # New flag for non-trading agents
+    },
+    "risk_manager": {
+        "name": "Risk Guardian",
+        "model": "openai/gpt-4o",
+        "personality": "Strict risk manager focused on capital preservation",
+        "strategy": "Hedging & Protection",
+        "risk_tolerance": "Very Low",
+        "trading_frequency": "Medium",
+        "focus_sectors": ["Volatility", "Inverse ETFs"],
+        "preferred_symbols": ["VIX", "SPY"],
+        "crypto_risk_multiplier": 0.1,
+        "is_support_agent": True,
+    },
+    "crypto_specialist": {
+        "name": "Crypto Zenith",
+        "model": "deepseek/deepseek-chat",
+        "personality": "High-frequency crypto arbitrage and momentum trader",
+        "strategy": "Crypto Momentum",
+        "risk_tolerance": "High",
+        "trading_frequency": "Very High",
+        "focus_sectors": ["Crypto L1", "DeFi"],
+        "preferred_symbols": ["MSTR", "COIN"],
+        "preferred_crypto_pairs": ["SOLUSDT", "AVAXUSDT", "SUIUSDT", "NEARUSDT", "PEPEUSDT"],
+        "crypto_risk_multiplier": 1.0,  # Full position sizing
+        "active_market_types": ["CRYPTO"],  # New: specifically for crypto
+    },
 }
 
 

@@ -24,18 +24,33 @@ logger = structlog.get_logger()
 settings = get_settings()
 
 
+from agents.generic_agent import GenericAgent
+
+# Map legacy keys to specific classes for backward compatibility
+AGENT_CLASS_MAP = {
+    "gpt4": GPT4Agent,
+    "claude": ClaudeAgent,
+    "grok": GrokAgent,
+    "gemini": GeminiAgent,
+    "deepseek": DeepSeekAgent,
+    "mistral": MistralAgent,
+}
+
 class TradingOrchestrator:
     """Orchestrates trading decisions across all agents."""
     
     def __init__(self, ws_manager=None):
-        self.agents = [
-            GPT4Agent(),
-            ClaudeAgent(),
-            GrokAgent(),
-            GeminiAgent(),
-            DeepSeekAgent(),
-            MistralAgent(),
-        ]
+        # Dynamic agent loading
+        self.agents = []
+        for key in AGENT_CONFIGS.keys():
+            if key in AGENT_CLASS_MAP:
+                # Use specific class for legacy agents
+                self.agents.append(AGENT_CLASS_MAP[key]())
+            else:
+                # Use GenericAgent for new agents (researcher, risk_manager, etc.)
+                self.agents.append(GenericAgent(key))
+                
+        logger.info("loaded_agents", count=len(self.agents), keys=list(AGENT_CONFIGS.keys()))
         self.data_collector = get_data_collector()
         self.risk_manager = get_risk_manager()
         self.ws_manager = ws_manager

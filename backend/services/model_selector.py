@@ -57,6 +57,20 @@ MODEL_CATEGORIES = {
     },
 }
 
+# STATIC CANDIDATES - The "Static" part of "Dynamic but Static"
+# We only select from this curated list to ensure reliability and tool support.
+STATIC_CANDIDATES = [
+    "anthropic/claude-3.5-sonnet",
+    "openai/gpt-4o",
+    "deepseek/deepseek-chat",     # DeepSeek V3
+    "x-ai/grok-2-1212",
+    "google/gemini-2.0-flash-exp:free",
+    "google/gemini-pro-1.5",
+    "mistralai/mistral-large-2411",
+    "meta-llama/llama-3.3-70b-instruct",
+    "openai/gpt-4o-mini",          # Cost effective
+]
+
 
 class ModelSelector:
     """Intelligent model selection from OpenRouter."""
@@ -169,6 +183,12 @@ class ModelSelector:
         candidates = []
         for model in models:
             model_id = model.get("id", "")
+            
+            # CRITICAL: Enforce Static Candidate List
+            # We ONLY consider models in our approved static list
+            if model_id not in STATIC_CANDIDATES:
+                continue
+
             model_name = model.get("name", "").lower()
             model_desc = model.get("description", "").lower()
             
