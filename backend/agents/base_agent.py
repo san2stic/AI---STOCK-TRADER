@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import json
 import structlog
 from config import get_settings, AGENT_CONFIGS
-from services.vertex_client import get_vertex_client
+from services.gemini_client import get_gemini_client
 from tools.trading_tools import TRADING_TOOLS, TradingTools
 from models.database import Decision, AgentReflection, Trade, TradeStatus, Portfolio
 from database import get_db
@@ -29,19 +29,19 @@ class BaseAgent(ABC):
         self.strategy = self.config["strategy"]
         self.risk_tolerance = self.config["risk_tolerance"]
         
-        # Vertex AI - force configured model (Claude 3.5 Sonnet)
+        # Google AI (Gemini) - force configured model
         # Dynamic selection is disabled in favor of standardized high-performance model
         self.model = self.config["model"]
         self.model_category = "finance"
         
-        self.vertex_client = get_vertex_client()
+        self.client = get_gemini_client()
         self.tools = TradingTools(self.name)
         
         logger.info(
             "agent_initialized",
             name=self.name,
             model=self.model,
-            provider="vertex_ai",
+            provider="google_ai_studio",
             strategy=self.strategy,
         )
     
@@ -83,7 +83,7 @@ class BaseAgent(ABC):
         
         try:
             # Call AI model with function calling tools
-            response = await self.vertex_client.call_agent(
+            response = await self.client.call_agent(
                 model=self.model,
                 messages=messages,
                 tools=TRADING_TOOLS,
@@ -91,8 +91,8 @@ class BaseAgent(ABC):
             )
             
             # Parse response
-            tool_calls = self.vertex_client.parse_tool_calls(response)
-            message_content = self.vertex_client.get_message_content(response)
+            tool_calls = self.client.parse_tool_calls(response)
+            message_content = self.client.get_message_content(response)
             
             # Log decision
             decision = await self._log_decision(
@@ -267,13 +267,13 @@ Be brutally honest with yourself. Your future performance depends on this reflec
         ]
         
         try:
-            response = await self.vertex_client.call_agent(
+            response = await self.client.call_agent(
                 model=self.model,
                 messages=messages,
                 temperature=0.8,
             )
             
-            reflection_text = self.vertex_client.get_message_content(response)
+            reflection_text = self.client.get_message_content(response)
             
             # Parse reflection sections
             went_well = ""

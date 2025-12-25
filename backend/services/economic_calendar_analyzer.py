@@ -7,7 +7,7 @@ from typing import Optional, List, Dict, Any
 import structlog
 import json
 from services.economic_calendar import get_economic_calendar, EventImpact
-from services.vertex_client import get_vertex_client
+from services.gemini_client import get_gemini_client
 
 logger = structlog.get_logger()
 
@@ -20,10 +20,10 @@ class EconomicCalendarAnalyzer:
         Initialize the analyzer.
         
         Args:
-            model: Model to use (mapped to Vertex AI)
+            model: Model to use (mapped to Gemini)
         """
-        self.model = "anthropic/claude-4.5-sonnet"  # Force use of Vertex model
-        self.vertex_client = get_vertex_client()
+        self.model = "gemini-3-flash-preview"  # Force use of Gemini model
+        self.client = get_gemini_client()
         self.calendar = get_economic_calendar()
         self.cache: Optional[Dict[str, Any]] = None
         self.cache_time: Optional[datetime] = None
@@ -81,7 +81,7 @@ class EconomicCalendarAnalyzer:
                 events_count=len(events)
             )
             
-            response = await self.vertex_client.call_agent(
+            response = await self.client.call_agent(
                 model=self.model,
                 messages=[
                     {
@@ -98,7 +98,7 @@ class EconomicCalendarAnalyzer:
             )
             
             # Parse LLM response
-            analysis_text = self.vertex_client.get_message_content(response)
+            analysis_text = self.client.get_message_content(response)
             
             if not analysis_text:
                 raise ValueError("Empty response from LLM")

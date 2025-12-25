@@ -14,10 +14,9 @@ class Settings(BaseSettings):
     trading_mode: str = Field(default="PAPER", description="PAPER or LIVE")
     initial_capital: float = Field(default=10000.0, ge=100.0)
     
-    # Vertex AI (Google Cloud) - Gemini 2.0
-    vertex_ai_project_id: str = "project-id-placeholder"
-    vertex_ai_location: str = "us-central1"
-    vertex_ai_model: str = "gemini-2.0-flash-exp"  # Gemini 2.0 experimental model
+    # Google AI Studio (Gemini API)
+    google_ai_api_key: str = ""
+    gemini_model: str = "gemini-3-flash-preview"  # Default Gemini model
     
     # Alpaca Markets (Free API)
     alpaca_api_key: str

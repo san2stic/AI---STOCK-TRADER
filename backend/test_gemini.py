@@ -7,7 +7,7 @@ import os
 # Ensure backend directory is in python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from services.vertex_client import get_vertex_client
+from services.gemini_client import get_gemini_client
 
 # Configure basic logging to stdout
 structlog.configure(
@@ -18,9 +18,9 @@ structlog.configure(
     logger_factory=structlog.PrintLoggerFactory(),
 )
 
-async def test_vertex():
-    print("Testing Vertex AI Connection with multiple models...")
-    client = get_vertex_client()
+async def test_gemini():
+    print("Testing Google AI Studio (Gemini) Connection with multiple models...")
+    client = get_gemini_client()
     
     messages = [
         {"role": "user", "content": "Hello, simply reply with 'OK'."}
@@ -28,9 +28,8 @@ async def test_vertex():
     
     # List of models to try
     models_to_test = [
+        "gemini-3-flash-preview",
         "gemini-2.0-flash-exp",
-        "gemini-1.5-pro-002",
-        "gemini-1.5-flash-002"
     ]
     
     for model in models_to_test:
@@ -50,4 +49,4 @@ async def test_vertex():
             print(f"FAILED: {model} - Error: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(test_vertex())
+    asyncio.run(test_gemini())

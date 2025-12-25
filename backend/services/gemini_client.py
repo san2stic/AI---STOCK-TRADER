@@ -1,12 +1,10 @@
 """
-Google Cloud Vertex AI client for Gemini 3 Pro.
-Migrated from Claude/Anthropic to native Gemini API.
+Google AI Studio client for Gemini 2.0.
+Replaces Vertex AI client with direct API access using API Key.
 """
 import httpx
 import json
 import logging
-import google.auth
-import google.auth.transport.requests
 from typing import Dict, List, Optional, Any
 from config import get_settings
 import structlog
@@ -15,86 +13,58 @@ logger = structlog.get_logger()
 settings = get_settings()
 
 
-class VertexAIClient:
+class GeminiClient:
     """
-    Client for Google Cloud Vertex AI API (Gemini models).
-    Uses native Gemini API format for function calling and generation.
+    Client for Google AI Studio (Gemini API).
+    Uses native Gemini API format.
     """
     
     def __init__(self):
-        self.project_id = settings.vertex_ai_project_id
-        self.location = settings.vertex_ai_location
+        self.api_key = settings.google_ai_api_key
         # Default to Gemini model from settings
-        self.default_model = settings.vertex_ai_model
+        self.default_model = settings.gemini_model
         
-        # Mapping from legacy/generic names to Vertex AI Model IDs
+        # Mapping from generic names to Google AI Studio Model IDs
         self.model_mapping = {
-            # Gemini 3 models (preview - latest generation)
-            "google/gemini-3-pro-preview": "gemini-3-pro-preview",
+            # Gemini 3 (Preview)
             "google/gemini-3-flash-preview": "gemini-3-flash-preview",
-            "gemini-3-pro-preview": "gemini-3-pro-preview",
             "gemini-3-flash-preview": "gemini-3-flash-preview",
-            
-            # Gemini models (actual Vertex AI models)
+            "models/gemini-3-flash-preview": "gemini-3-flash-preview",
+
+            # Gemini 2.0 (Experimental)
             "google/gemini-2.0-flash-exp": "gemini-2.0-flash-exp",
-            "google/gemini-exp-1206": "gemini-exp-1206",
-            "google/gemini-1.5-pro": "gemini-1.5-pro-002",
-            "google/gemini-1.5-flash": "gemini-1.5-flash-002",
             "gemini-2.0-flash-exp": "gemini-2.0-flash-exp",
-            "gemini-exp-1206": "gemini-exp-1206",
-            "gemini-1.5-pro": "gemini-1.5-pro-002",
-            "gemini-1.5-flash": "gemini-1.5-flash-002",
             
-            # Legacy Claude mappings -> redirect to Gemini 3 Preview
-            "anthropic/claude-4.5-sonnet": "gemini-3-pro-preview",
-            "anthropic/claude-3.5-sonnet": "gemini-3-pro-preview",
-            "anthropic/claude-3-opus": "gemini-3-pro-preview",
-            "anthropic/claude-3-haiku": "gemini-3-flash-preview",
+            # Gemini 1.5
+            "google/gemini-1.5-pro": "gemini-1.5-pro",
+            "google/gemini-1.5-flash": "gemini-1.5-flash",
+            "gemini-1.5-pro": "gemini-1.5-pro",
+            "gemini-1.5-flash": "gemini-1.5-flash",
             
-            # Legacy OpenAI mappings -> redirect to Gemini 3 Preview
-            "openai/gpt-4o": "gemini-3-pro-preview",
-            "openai/gpt-4-turbo-preview": "gemini-3-pro-preview",
-            "openai/gpt-5.2": "gemini-3-pro-preview",
-            
-            # Legacy non-existent models -> redirect to valid ones
-            "google/gemini-3-pro": "gemini-3-pro-preview",
-            "gemini-3-pro": "gemini-3-pro-preview",
+            # Legacy/Generic redirections -> Default
+            "google/gemini-3-pro": "gemini-3-flash-preview", 
+            "anthropic/claude-4.5-sonnet": "gemini-3-flash-preview",
+            "openai/gpt-4o": "gemini-3-flash-preview",
         }
         
-    def _get_access_token(self) -> str:
-        """Get Google Cloud access token using ADC."""
-        try:
-            credentials, project = google.auth.default()
-            auth_req = google.auth.transport.requests.Request()
-            credentials.refresh(auth_req)
-            return credentials.token
-        except Exception as e:
-            logger.error("vertex_auth_error", error=str(e))
-            raise
-
-    def _get_vertex_endpoint(self, model: str) -> str:
+    def _get_api_url(self, model: str) -> str:
         """
-        Get the Vertex AI endpoint URL for Gemini models.
-        Format: https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/{REGION}/publishers/google/models/{MODEL}:generateContent
+        Get the Google AI Studio endpoint URL.
+        Format: https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent?key={API_KEY}
         """
         # Resolve model ID
-        vertex_model_id = self.model_mapping.get(model, model)
+        gemini_model_id = self.model_mapping.get(model, model)
         
-        # Default fallback
-        if not vertex_model_id or vertex_model_id not in self.model_mapping.values():
-            vertex_model_id = self.default_model
-            
-        return f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/{vertex_model_id}:generateContent"
+        # Default fallback if looked up failed or not found (and not a valid ID itself)
+        # Simple heuristic: if it contains '/', it's likely a mapped name like "google/..." that wasn't found
+        if "/" in gemini_model_id: 
+             gemini_model_id = self.default_model
+
+        return f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model_id}:generateContent?key={self.api_key}"
 
     def _convert_to_gemini_tools(self, tools: List[Dict]) -> List[Dict]:
         """
         Convert OpenAI/Anthropic tool format to Gemini functionDeclarations format.
-        
-        Input (OpenAI format):
-        {"type": "function", "function": {"name": ..., "description": ..., "parameters": ...}}
-        
-        Output (Gemini format):
-        {"functionDeclarations": [{"name": ..., "description": ..., "parameters": ...}]}
         """
         if not tools:
             return []
@@ -103,13 +73,15 @@ class VertexAIClient:
         for tool in tools:
             if "function" in tool:
                 fn = tool["function"]
+                # Ensure parameters is not empty if missing
+                params = fn.get("parameters", {"type": "object", "properties": {}})
                 function_declarations.append({
                     "name": fn["name"],
                     "description": fn.get("description", ""),
-                    "parameters": fn.get("parameters", {"type": "object", "properties": {}})
+                    "parameters": params
                 })
             elif "name" in tool:
-                # Already in Gemini-like format
+                # Already in Gemini-like format or simplified format
                 function_declarations.append({
                     "name": tool["name"],
                     "description": tool.get("description", ""),
@@ -127,41 +99,39 @@ class VertexAIClient:
         max_tokens: int = 4096,
     ) -> Dict[str, Any]:
         """
-        Call Gemini model on Vertex AI.
-        API matches OpenRouterClient.call_agent for compatibility.
+        Call Gemini API via Google AI Studio.
+        Compatible with OpenRouterClient/VertexAIClient interface.
         """
-        token = self._get_access_token()
-        url = self._get_vertex_endpoint(model)
+        if not self.api_key:
+             raise ValueError("GOOGLE_AI_API_KEY is not set in environment variables.")
+
+        url = self._get_api_url(model)
         
         headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json; charset=utf-8",
+            "Content-Type": "application/json",
         }
         
-        # Convert messages to Gemini format
-        # Gemini format:
-        # {
-        #   "contents": [{"role": "user", "parts": [{"text": "..."}]}],
-        #   "systemInstruction": {"parts": [{"text": "..."}]},
-        #   "tools": [{"functionDeclarations": [...]}],
-        #   "generationConfig": {...}
-        # }
-        
+        # Conversion to Gemini format
         system_instruction = ""
         gemini_contents = []
         
         for msg in messages:
-            if msg["role"] == "system":
-                system_instruction += msg["content"] + "\n"
-            elif msg["role"] == "user":
+            role = msg["role"]
+            content = msg["content"]
+            
+            if role == "system":
+                system_instruction += content + "\n"
+            elif role == "user":
                 gemini_contents.append({
                     "role": "user",
-                    "parts": [{"text": msg["content"]}]
+                    "parts": [{"text": content}]
                 })
-            elif msg["role"] == "assistant":
+            elif role == "assistant":
+                # Handle tool calls in history if present (complex, skipping for now for simple agent flow)
+                # But for standard text response:
                 gemini_contents.append({
                     "role": "model",
-                    "parts": [{"text": msg["content"]}]
+                    "parts": [{"text": content}]
                 })
         
         payload = {
@@ -169,8 +139,8 @@ class VertexAIClient:
             "generationConfig": {
                 "temperature": temperature,
                 "maxOutputTokens": max_tokens,
-                "topP": 0.95,
-                "topK": 40,
+                # "topP": 0.95,
+                # "topK": 40,
             }
         }
         
@@ -183,19 +153,16 @@ class VertexAIClient:
             gemini_tools = self._convert_to_gemini_tools(tools)
             if gemini_tools:
                 payload["tools"] = gemini_tools
-                # Enable automatic function calling
-                payload["toolConfig"] = {
-                    "functionCallingConfig": {
-                        "mode": "AUTO"
-                    }
-                }
+                # Auto function calling
+                # payload["toolConfig"] = {"functionCallingConfig": {"mode": "AUTO"}} 
+                # Note: 'toolConfig' might differ slightly in v1beta public API vs Vertex, 
+                # but usually AUTO is default if tools provided.
             
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
                 logger.info(
-                    "vertex_request",
+                    "gemini_request",
                     model=model,
-                    resolved_model=self.model_mapping.get(model, model),
                     endpoint="generateContent",
                     message_count=len(gemini_contents),
                     has_tools=bool(tools),
@@ -209,7 +176,7 @@ class VertexAIClient:
                 
                 if response.status_code != 200:
                     logger.error(
-                        "vertex_http_error",
+                        "gemini_http_error",
                         status=response.status_code,
                         body=response.text[:500]
                     )
@@ -217,18 +184,7 @@ class VertexAIClient:
                     
                 data = response.json()
                 
-                # Transform Gemini response to OpenAI-compatible format
-                # Gemini response:
-                # {
-                #   "candidates": [{
-                #     "content": {
-                #       "parts": [{"text": "..."} or {"functionCall": {"name": ..., "args": ...}}],
-                #       "role": "model"
-                #     }
-                #   }],
-                #   "usageMetadata": {...}
-                # }
-                
+                # Transform response to OpenAI-compatible format
                 content = ""
                 tool_calls = []
                 
@@ -249,6 +205,9 @@ class VertexAIClient:
                                 }
                             })
                 
+                # Usage metadata (might vary in structure)
+                usage = data.get("usageMetadata", {})
+                
                 simulated_response = {
                     "choices": [
                         {
@@ -259,13 +218,11 @@ class VertexAIClient:
                             }
                         }
                     ],
-                    "usage": data.get("usageMetadata", {})
+                    "usage": usage
                 }
                 
-                # Log usage
-                usage = data.get("usageMetadata", {})
                 logger.info(
-                    "vertex_usage",
+                    "gemini_usage",
                     model=model,
                     input_tokens=usage.get("promptTokenCount", 0),
                     output_tokens=usage.get("candidatesTokenCount", 0),
@@ -274,12 +231,12 @@ class VertexAIClient:
                 return simulated_response
                 
         except Exception as e:
-            logger.error("vertex_error", model=model, error=str(e))
+            logger.error("gemini_error", model=model, error=str(e))
             raise
 
-    # Compatibility methods (unchanged interface)
+    # Compatibility methods
     def parse_tool_calls(self, response: Dict[str, Any]) -> List[Dict]:
-        """Extract tool calls from response (same as OpenRouterClient)."""
+        """Extract tool calls from response."""
         try:
             choice = response.get("choices", [{}])[0]
             message = choice.get("message", {})
@@ -311,11 +268,11 @@ class VertexAIClient:
 
 
 # Singleton instance
-_client: Optional[VertexAIClient] = None
+_client: Optional[GeminiClient] = None
 
-def get_vertex_client() -> VertexAIClient:
-    """Get or create VertexAI client instance."""
+def get_gemini_client() -> GeminiClient:
+    """Get or create GeminiClient instance."""
     global _client
     if _client is None:
-        _client = VertexAIClient()
+        _client = GeminiClient()
     return _client

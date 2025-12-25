@@ -70,7 +70,5 @@ pytest-cov==4.1.0
 duckduckgo-search==5.3.0
 google-search-results==2.4.2
 
-# Google Cloud Vertex AI
-google-auth==2.27.0
-google-cloud-aiplatform==1.38.0
-google-generativeai==0.3.1
+# Google AI Studio (Gemini API)
+# No specific SDK required - using httpx for direct API calls

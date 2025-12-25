@@ -8,6 +8,7 @@ import structlog
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 from config import get_settings
+from services.gemini_client import get_gemini_client
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -64,7 +65,8 @@ STATIC_CANDIDATES = [
     "openai/gpt-4o",
     "deepseek/deepseek-chat",     # DeepSeek V3
     "x-ai/grok-2-1212",
-    "google/gemini-2.0-flash-exp:free",
+    "gemini-3-flash-preview",
+    "google/gemini-2.0-flash-exp",
     "google/gemini-pro-1.5",
     "mistralai/mistral-large-2411",
     "meta-llama/llama-3.3-70b-instruct",
@@ -74,21 +76,20 @@ STATIC_CANDIDATES = [
 
 class ModelSelector:
     """
-    Intelligent model selection (Simplified for Vertex AI migration).
-    Now serves static configuration forcing Claude 3.5 Sonnet for all tasks.
+    Intelligent model selection (Simplified for Google AI Studio migration).
+    Now serves static configuration forcing Gemini 3.0 Flash for all tasks.
     """
     
     def __init__(self):
-        # No API key needed for static Vertex AI configuration
         self._cache = {}
         
     async def get_available_models(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
-        """Return static list containing only the Vertex AI model."""
+        """Return static list containing only the Gemini model."""
         return [{
-            "id": "anthropic/claude-4.5-sonnet",
-            "name": "Claude 3.5 Sonnet (Vertex AI)",
-            "description": "High-performance model via Google Cloud Vertex AI",
-            "context_length": 200000,
+            "id": "gemini-3-flash-preview",
+            "name": "Gemini 3.0 Flash (Preview)",
+            "description": "High-performance model via Google AI Studio Key",
+            "context_length": 1000000,
             "pricing": {"prompt": "0", "completion": "0"}
         }]
     
@@ -101,10 +102,10 @@ class ModelSelector:
     ) -> Dict[str, str]:
         """
         Select the best model for each category.
-        For Vertex AI migration, this returns the same model for everything.
+        For Google AI Studio migration, this returns the same model for everything.
         """
-        # Force unified model for all categories
-        unified_model = "anthropic/claude-4.5-sonnet"
+        # Force unified model for all categories to Gemini 3.0
+        unified_model = "gemini-3-flash-preview"
         return {cat: unified_model for cat in MODEL_CATEGORIES}
     
     def _select_for_category(
@@ -114,105 +115,16 @@ class ModelSelector:
         requirements: Dict[str, Any],
     ) -> str:
         """Select best model for a specific category."""
-        req = requirements["requirements"]
-        
-        # Filter models
-        candidates = []
-        for model in models:
-            model_id = model.get("id", "")
-            
-            # CRITICAL: Enforce Static Candidate List
-            # We ONLY consider models in our approved static list
-            if model_id not in STATIC_CANDIDATES:
-                continue
-
-            model_name = model.get("name", "").lower()
-            model_desc = model.get("description", "").lower()
-            
-            # Check context length
-            context_length = model.get("context_length", 0)
-            if context_length < req.get("min_context", 0):
-                continue
-            
-            # Check provider preference
-            provider = model_id.split("/")[0] if "/" in model_id else ""
-            
-            # Calculate score
-            score = 0
-            
-            # Provider preference
-            if provider in req.get("preferred_providers", []):
-                score += 10
-                
-            # Check for keywords in description
-            for keyword in req.get("keywords", []):
-                if keyword in model_name or keyword in model_desc:
-                    score += 5
-            
-            # Prefer models with more context
-            score += min(context_length / 10000, 5)
-            
-            # Popular models (based on naming patterns)
-            if any(x in model_id.lower() for x in ["gpt-4", "claude-3", "claude-sonnet", "deepseek-r1", "gemini-3", "grok-4"]):
-                score += 8
-            
-            # Specific high-quality models for finance and general tasks
-            # Boost specific STABLE proven models
-            if "anthropic/claude-3.5-sonnet" in model_id:
-                score += 20
-            elif model_id == "openai/gpt-4o":
-                score += 25
-            elif "openai/gpt-4o" in model_id and "mini" not in model_id and "audio" not in model_id and "search" not in model_id:
-                score += 20
-            elif "google/gemini-pro-1.5" in model_id:
-                score += 15
-            elif "x-ai/grok-2" in model_id:
-                score += 15
-                
-            # Category specific adjustments
-            if category == "finance":
-                if "claude-3.5-sonnet" in model_id or "gpt-4o" in model_id:
-                    score += 10
-                if "deepseek-chat" in model_id or "deepseek-v3" in model_id:
-                    score += 8
-                    
-            # For data analysis, prefer reasoning models
-            if category == "data_analysis":
-                if "deepseek-reasoner" in model_id or "deepseek-r1" in model_id:
-                    score += 15
-                if "claude-3.5-sonnet" in model_id:
-                    score += 12
-                if "gemini-pro-1.5" in model_id:
-                    score += 10
-            
-            candidates.append({
-                "id": model_id,
-                "score": score,
-                "context": context_length,
-            })
-        
-        # Sort by score
-        candidates.sort(key=lambda x: x["score"], reverse=True)
-        
-        # Return best model or fallback
-        if candidates:
-            return candidates[0]["id"]
-        else:
-            logger.warning(
-                "model_selector_no_candidates",
-                category=category,
-                using_fallback=requirements["fallback"],
-            )
-            return requirements["fallback"]
+        return "gemini-3-flash-preview"
     
     async def get_model_info(self, model_id: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a specific model."""
         # Always return mock info for our target model
-        if "claude" in model_id.lower() or "sonnet" in model_id.lower():
+        if "gemini" in model_id.lower():
              return {
                 "id": model_id,
-                "name": "Claude 3.5 Sonnet (Vertex AI)",
-                "context_length": 200000,
+                "name": "Gemini 3.0 Flash (Preview)",
+                "context_length": 1000000,
              }
         return None
     
@@ -226,6 +138,13 @@ class ModelSelector:
     async def is_model_available(self, model_id: str) -> bool:
         """Check if a specific model is available."""
         return True
+    
+    def get_client(self, model_id: str = None):
+        """
+        Get the Gemini client.
+        In this simplified version, we always return the GeminiClient.
+        """
+        return get_gemini_client()
 
 
 # Singleton instance
