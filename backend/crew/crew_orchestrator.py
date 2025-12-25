@@ -16,7 +16,7 @@ from models.crew_models import (
 )
 from database import get_db
 from config import get_settings
-from services.openrouter import get_openrouter_client
+from services.gemini_client import get_gemini_client
 from services.decision_parser import get_decision_parser
 from services.risk_manager import get_risk_manager
 from tools.trading_tools import TRADING_TOOLS
@@ -46,7 +46,7 @@ class CrewOrchestrator:
         """
         self.agents = agents
         self.ws_manager = ws_manager
-        self.openrouter = get_openrouter_client()
+        self.llm_client = get_gemini_client()
         self.decision_parser = None  # Initialized lazily on first use
         
         # Configuration
@@ -412,15 +412,15 @@ Focus on EXPLORATION, not final decision yet.
             
             try:
                 # Call agent to explore
-                response = await self.openrouter.call_agent(
+                response = await self.llm_client.call_agent(
                     model=agent.model,
                     messages=[{"role": "user", "content": discovery_prompt}],
                     tools=TRADING_TOOLS,
                     temperature=0.7,
                 )
                 
-                content = self.openrouter.get_message_content(response)
-                tool_calls = self.openrouter.parse_tool_calls(response) if hasattr(self.openrouter, 'parse_tool_calls') else []
+                content = self.llm_client.get_message_content(response)
+                tool_calls = self.llm_client.parse_tool_calls(response) if hasattr(self.llm_client, 'parse_tool_calls') else []
                 
                 # Store discovery results
                 discovery_results[agent.name] = {
@@ -600,14 +600,14 @@ Present your devil's advocate argument now.
 """
 
         try:
-            response = await self.openrouter.call_agent(
+            response = await self.llm_client.call_agent(
                 model=devil_advocate.model,
                 messages=[{"role": "user", "content": prompt}],
                 tools=TRADING_TOOLS,
                 temperature=0.8,  # Higher temperature for creative counter-arguments
             )
             
-            content = self.openrouter.get_message_content(response)
+            content = self.llm_client.get_message_content(response)
             
             # Send devil's advocate message
             communication.send_message(
@@ -711,14 +711,14 @@ Be constructive and specific. Your critique helps improve overall decision quali
 """
             
             try:
-                response = await self.openrouter.call_agent(
+                response = await self.llm_client.call_agent(
                     model=agent.model,
                     messages=[{"role": "user", "content": prompt}],
                     tools=TRADING_TOOLS,
                     temperature=0.7,
                 )
                 
-                content = self.openrouter.get_message_content(response)
+                content = self.llm_client.get_message_content(response)
                 
                 if not content:
                     logger.warning(
@@ -874,13 +874,13 @@ Be respectful but express your true analysis. Provide your response and updated 
 """
         
         try:
-            response = await self.openrouter.call_agent(
+            response = await self.llm_client.call_agent(
                 model=agent.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
             )
             
-            content = self.openrouter.get_message_content(response)
+            content = self.llm_client.get_message_content(response)
             
             # Use intelligent parser to extract structured information
             if self.decision_parser is None:
@@ -920,13 +920,13 @@ Reasoning: [brief explanation]
 """
         
         try:
-            response = await self.openrouter.call_agent(
+            response = await self.llm_client.call_agent(
                 model=agent.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.5,
             )
             
-            content = self.openrouter.get_message_content(response)
+            content = self.llm_client.get_message_content(response)
             
             # Use intelligent parser for robust extraction
             if self.decision_parser is None:
@@ -978,13 +978,13 @@ Reasoning: [detailed explanation]
 """
         
         try:
-            response = await self.openrouter.call_agent(
+            response = await self.llm_client.call_agent(
                 model=mediator_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,  # Lower temperature for mediator
             )
             
-            content = self.openrouter.get_message_content(response)
+            content = self.llm_client.get_message_content(response)
             
             # Use intelligent parser for mediator decision
             if self.decision_parser is None:

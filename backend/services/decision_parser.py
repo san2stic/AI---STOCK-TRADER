@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, List
 import re
 import json
 import structlog
-from services.openrouter import get_openrouter_client
+from services.gemini_client import get_gemini_client
 from services.parsing_cache import get_parsing_cache
 from models.crew_models import MessageType
 from config import get_settings
@@ -23,7 +23,7 @@ class DecisionParser:
     
     def __init__(self):
         """Initialize the decision parser."""
-        self.openrouter = get_openrouter_client()
+        self.llm_client = get_gemini_client()
         self.cache = get_parsing_cache() if settings.parsing_cache_enabled else None
         self.model = settings.claude_parsing_model
         self.enabled = settings.enable_intelligent_parsing
@@ -120,13 +120,13 @@ Rules:
 
 Return ONLY valid JSON, no markdown or explanation."""
 
-        response = await self.openrouter.call_agent(
+        response = await self.llm_client.call_agent(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,  # Low temperature for consistent extraction
         )
         
-        result_text = self.openrouter.get_message_content(response)
+        result_text = self.llm_client.get_message_content(response)
         
         # Parse JSON from response
         # Remove markdown code blocks if present
@@ -296,13 +296,13 @@ Message type definitions:
 
 Return ONLY valid JSON."""
 
-        response = await self.openrouter.call_agent(
+        response = await self.llm_client.call_agent(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
         )
         
-        result_text = self.openrouter.get_message_content(response)
+        result_text = self.llm_client.get_message_content(response)
         
         # Clean and parse JSON
         result_text = result_text.strip()
@@ -427,13 +427,13 @@ Return ONLY a JSON object:
 
 Return ONLY valid JSON."""
 
-        response = await self.openrouter.call_agent(
+        response = await self.llm_client.call_agent(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
         )
         
-        result_text = self.openrouter.get_message_content(response)
+        result_text = self.llm_client.get_message_content(response)
         
         # Clean and parse
         result_text = result_text.strip()

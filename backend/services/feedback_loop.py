@@ -10,7 +10,7 @@ from models.database import Trade, Decision
 from models.trade_outcome import TradeOutcome, OutcomeCategory
 from models.database import AgentReflection
 from database import get_db
-from services.openrouter import get_openrouter_client
+from services.gemini_client import get_gemini_client
 from config import AGENT_CONFIGS
 
 logger = structlog.get_logger()
@@ -32,7 +32,7 @@ class FeedbackLoop:
     def __init__(self):
         if not hasattr(self, '_initialized'):
             self._initialized = True
-            self.openrouter = get_openrouter_client()
+            self.llm_client = get_gemini_client()
             logger.info("feedback_loop_initialized")
     
     async def generate_trade_feedback(
@@ -175,14 +175,14 @@ Be honest and specific. Your future performance depends on learning from this.
                 {"role": "user", "content": prompt}
             ]
             
-            response = await self.openrouter.call_agent(
+            response = await self.llm_client.call_agent(
                 model=agent_model,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=500
             )
             
-            feedback = self.openrouter.get_message_content(response)
+            feedback = self.llm_client.get_message_content(response)
             return feedback
             
         except Exception as e:

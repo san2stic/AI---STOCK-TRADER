@@ -5,7 +5,7 @@ Uses a powerful model (Claude 4.5) to validate crew decisions.
 from typing import Dict, Any, Optional
 import structlog
 from config import get_settings
-from services.openrouter import get_openrouter_client
+from services.gemini_client import get_gemini_client
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -18,7 +18,7 @@ class OrderValidator:
     """
     
     def __init__(self):
-        self.openrouter = get_openrouter_client()
+        self.llm_client = get_gemini_client()
         # Use Claude 4.5 or another powerful model for validation
         self.validator_model = getattr(
             settings, 
@@ -79,7 +79,7 @@ class OrderValidator:
         
         try:
             # Call Claude 4.5 for validation
-            response = await self.openrouter.call_agent(
+            response = await self.llm_client.call_agent(
                 model=self.validator_model,
                 messages=[
                     {
@@ -94,7 +94,7 @@ class OrderValidator:
                 temperature=0.1,  # Very low temperature for consistent validation
             )
             
-            validation_text = self.openrouter.get_message_content(response)
+            validation_text = self.llm_client.get_message_content(response)
             
             # Parse validation result
             result = self._parse_validation_result(validation_text)
