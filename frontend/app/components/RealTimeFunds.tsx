@@ -95,11 +95,8 @@ export default function RealTimeFunds() {
                         <DollarSign className="w-5 h-5 text-cyan-400" />
                         <span className="text-sm text-gray-300">Valeur Totale</span>
                     </div>
-                    <div className="text-4xl font-bold text-white mb-2">
+                    <div className="text-4xl font-bold text-white">
                         ${funds.totals.total_value.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                        Capital initial: ${funds.totals.initial_capital.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                     </div>
                 </div>
 
@@ -113,13 +110,9 @@ export default function RealTimeFunds() {
                         )}
                         <span className="text-sm text-gray-300">Profit & Loss</span>
                     </div>
-                    <div className={`text-4xl font-bold mb-2 ${isProfitable ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className={`text-4xl font-bold ${isProfitable ? 'text-green-400' : 'text-red-400'}`}>
                         {isProfitable ? '+' : ''}
                         {funds.totals.pnl_percent.toFixed(2)}%
-                    </div>
-                    <div className={`text-sm ${isProfitable ? 'text-green-300' : 'text-red-300'}`}>
-                        {isProfitable ? '+' : ''}
-                        ${funds.totals.pnl.toFixed(2)}
                     </div>
                 </div>
 
