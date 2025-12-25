@@ -54,6 +54,7 @@ services:
       - VERTEX_AI_PROJECT_ID=${VERTEX_AI_PROJECT_ID}
       - VERTEX_AI_LOCATION=${VERTEX_AI_LOCATION}
       - VERTEX_AI_MODEL=${VERTEX_AI_MODEL}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/credentials.json # Default path inside container
 
       # Alpaca Markets API
