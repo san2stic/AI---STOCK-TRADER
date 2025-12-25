@@ -1,19 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, LineChart as LineChartIcon, Users, Activity } from 'lucide-react';
+import { BarChart3, LineChart as LineChartIcon, Users, Activity, Brain, Play, Pause } from 'lucide-react';
 
 interface ShellProps {
     children: React.ReactNode;
     activeTab: string;
     onTabChange: (tab: string) => void;
     wsStatus: 'connecting' | 'connected' | 'disconnected';
+    onPause: () => void;
+    onResume: () => void;
+    isPaused: boolean;
 }
 
-export default function Shell({ children, activeTab, onTabChange, wsStatus }: ShellProps) {
+export default function Shell({ children, activeTab, onTabChange, wsStatus, onPause, onResume, isPaused }: ShellProps) {
     const tabs = [
         { id: 'overview', label: "Vue d'ensemble", icon: BarChart3 },
         { id: 'charts', label: 'Graphiques', icon: LineChartIcon },
+        { id: 'learning', label: 'Apprentissage', icon: Brain }, // New Tab
         { id: 'crew', label: 'Équipe', icon: Users },
         { id: 'live', label: 'Messages Live', icon: Activity },
     ];
@@ -39,20 +43,37 @@ export default function Shell({ children, activeTab, onTabChange, wsStatus }: Sh
                             </p>
                         </div>
 
-                        {/* Status Indicator */}
-                        <div className="glass px-4 py-2 rounded-full flex items-center gap-3">
-                            <div className={`relative w-3 h-3`}>
-                                <div className={`absolute inset-0 rounded-full animate-ping opacity-75 ${wsStatus === 'connected' ? 'bg-success' :
+                        <div className="flex items-center gap-4">
+                            {/* Trading Control */}
+                            <button
+                                onClick={isPaused ? onResume : onPause}
+                                className={`
+                                    flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all shadow-lg border
+                                    ${isPaused
+                                        ? 'bg-warning/10 text-warning border-warning/50 hover:bg-warning/20'
+                                        : 'bg-primary/10 text-primary border-primary/50 hover:bg-primary/20 animate-pulse-glow'
+                                    }
+                                `}
+                            >
+                                {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} fill="currentColor" />}
+                                {isPaused ? 'REPRENDRE TRADING' : 'AUTO TRADING ACTIF'}
+                            </button>
+
+                            {/* Status Indicator */}
+                            <div className="glass px-4 py-2 rounded-full flex items-center gap-3">
+                                <div className={`relative w-3 h-3`}>
+                                    <div className={`absolute inset-0 rounded-full animate-ping opacity-75 ${wsStatus === 'connected' ? 'bg-success' :
                                         wsStatus === 'connecting' ? 'bg-warning' : 'bg-danger'
-                                    }`} />
-                                <div className={`relative w-3 h-3 rounded-full ${wsStatus === 'connected' ? 'bg-success shadow-[0_0_10px_#00e676]' :
+                                        }`} />
+                                    <div className={`relative w-3 h-3 rounded-full ${wsStatus === 'connected' ? 'bg-success shadow-[0_0_10px_#00e676]' :
                                         wsStatus === 'connecting' ? 'bg-warning' : 'bg-danger'
-                                    }`} />
+                                        }`} />
+                                </div>
+                                <span className="text-sm font-medium tracking-wide">
+                                    {wsStatus === 'connected' ? 'SYSTEM ONLINE' :
+                                        wsStatus === 'connecting' ? 'CONNECTING...' : 'OFFLINE'}
+                                </span>
                             </div>
-                            <span className="text-sm font-medium tracking-wide">
-                                {wsStatus === 'connected' ? 'SYSTEM ONLINE' :
-                                    wsStatus === 'connecting' ? 'CONNECTING...' : 'OFFLINE'}
-                            </span>
                         </div>
                     </div>
 

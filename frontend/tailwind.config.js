@@ -68,12 +68,28 @@ module.exports = {
                     '0%': { backgroundPosition: '-200% 0' },
                     '100%': { backgroundPosition: '200% 0' },
                 },
+                'scale-up': {
+                    '0%': { opacity: '0', transform: 'scale(0.95)' },
+                    '100%': { opacity: '1', transform: 'scale(1)' },
+                },
+                'fade-in': {
+                    '0%': { opacity: '0' },
+                    '100%': { opacity: '1' },
+                },
+                'gradient': {
+                    '0%': { backgroundPosition: '0% 50%' },
+                    '50%': { backgroundPosition: '100% 50%' },
+                    '100%': { backgroundPosition: '0% 50%' },
+                },
             },
             animation: {
                 'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
                 'pulse-glow': 'pulse-glow 2s infinite',
                 'market-pulse': 'market-pulse 3s infinite ease-in-out',
                 'shimmer': 'shimmer 3s infinite linear',
+                'scale-up': 'scale-up 0.3s ease-out forwards',
+                'fade-in': 'fade-in 0.2s ease-out forwards',
+                'gradient': 'gradient 8s ease infinite',
             },
             boxShadow: {
                 'neon': '0 0 10px rgba(0, 242, 254, 0.5), 0 0 20px rgba(0, 242, 254, 0.3)',

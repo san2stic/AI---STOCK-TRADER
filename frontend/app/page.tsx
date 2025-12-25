@@ -14,6 +14,8 @@ import EconomicCalendar from './components/EconomicCalendar';
 import EconomicCalendarAnalysis from './components/EconomicCalendarAnalysis';
 import ErrorBoundary from './components/ErrorBoundary';
 import ModelDisplay from './components/ModelDisplay';
+import LearningDashboard from './components/LearningDashboard';
+import AgentDetailModal from './components/AgentDetailModal';
 import useApi from './hooks/useApi';
 
 interface Agent {
@@ -36,13 +38,15 @@ interface Message {
     data: any;
 }
 
-type TabType = 'overview' | 'charts' | 'crew' | 'live';
+type TabType = 'overview' | 'charts' | 'crew' | 'live' | 'learning';
 
 export default function Home() {
     const [activeTab, setActiveTab] = useState<TabType>('overview');
     const [messages, setMessages] = useState<Message[]>([]);
     const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     const [ws, setWs] = useState<WebSocket | null>(null);
+    const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+    const [isPaused, setIsPaused] = useState(false);
 
     // Use useApi handling
     const {
@@ -62,6 +66,24 @@ export default function Home() {
 
     const agents = agentsData?.agents || [];
     const agentModels = modelsData?.agents || {};
+
+    const handlePause = async () => {
+        try {
+            await fetch('/api/trading/pause', { method: 'POST' });
+            setIsPaused(true);
+        } catch (error) {
+            console.error('Failed to pause trading:', error);
+        }
+    };
+
+    const handleResume = async () => {
+        try {
+            await fetch('/api/trading/resume', { method: 'POST' });
+            setIsPaused(false);
+        } catch (error) {
+            console.error('Failed to resume trading:', error);
+        }
+    };
 
     // WebSocket logic kept here for real-time updates
     useEffect(() => {
@@ -138,120 +160,139 @@ export default function Home() {
     }
 
     return (
-        <Shell
-            activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab as TabType)}
-            wsStatus={wsStatus}
-        >
-            {/* Real-Time Funds Display */}
-            <div className="mb-8">
-                <RealTimeFunds />
-            </div>
+        <>
+            <Shell
+                activeTab={activeTab}
+                onTabChange={(tab) => setActiveTab(tab as TabType)}
+                wsStatus={wsStatus}
+                onPause={handlePause}
+                onResume={handleResume}
+                isPaused={isPaused}
+            >
+                {/* Real-Time Funds Display */}
+                <div className="mb-8">
+                    <RealTimeFunds />
+                </div>
 
-            {/* Tab Content */}
-            <div className="animate-fade-in-up">
-                {activeTab === 'overview' && (
-                    <div className="space-y-8">
-                        {/* Live ScoreBoard */}
-                        <LiveScoreBoard agents={agents} />
+                {/* Tab Content */}
+                <div className="animate-fade-in-up">
+                    {activeTab === 'overview' && (
+                        <div className="space-y-8">
+                            {/* Live ScoreBoard */}
+                            <LiveScoreBoard agents={agents} />
 
-                        {/* Stock/Crypto Split */}
-                        <StockCryptoSplit />
+                            {/* Stock/Crypto Split */}
+                            <StockCryptoSplit />
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {/* Economic Calendar */}
-                            <EconomicCalendar daysAhead={7} minImpact="MEDIUM" />
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* Economic Calendar */}
+                                <EconomicCalendar daysAhead={7} minImpact="MEDIUM" />
 
-                            {/* AI Economic Calendar Analysis */}
-                            <EconomicCalendarAnalysis daysAhead={7} />
+                                {/* AI Economic Calendar Analysis */}
+                                <EconomicCalendarAnalysis daysAhead={7} />
+                            </div>
+
+                            {/* AI Models Display */}
+                            <ModelDisplay />
+
+                            {/* Agent Cards Grid */}
+                            <div>
+                                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                                    <span className="w-1 h-8 bg-primary rounded-full" />
+                                    Détails par Agent
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {agents.map(agent => {
+                                        // Find matching model info
+                                        const modelInfo = Object.values(agentModels).find(
+                                            (m: any) => m.name === agent.name
+                                        ) as any;
+
+                                        return (
+                                            <AgentCard
+                                                key={agent.name}
+                                                agent={{
+                                                    ...agent,
+                                                    model: modelInfo?.model,
+                                                    model_category: modelInfo?.category,
+                                                }}
+                                                onClick={() => setSelectedAgent(agent.name)}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Quick Stats */}
+                            <div className="glass-card p-8">
+                                <h2 className="text-2xl font-bold mb-6 text-glow">Statistiques Rapides</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                                    <div className="text-center group hover:scale-105 transition-transform">
+                                        <div className="text-4xl font-bold text-primary mb-2 group-hover:text-primary-glow transition-colors">
+                                            {agents.length}
+                                        </div>
+                                        <div className="text-sm text-gray-400 uppercase tracking-wider">Agents Actifs</div>
+                                    </div>
+                                    <div className="text-center group hover:scale-105 transition-transform">
+                                        <div className="text-4xl font-bold text-success mb-2 group-hover:text-success-glow transition-colors">
+                                            {agents.reduce((sum, a) => sum + a.total_trades, 0)}
+                                        </div>
+                                        <div className="text-sm text-gray-400 uppercase tracking-wider">Trades Totaux</div>
+                                    </div>
+                                    <div className="text-center group hover:scale-105 transition-transform">
+                                        <div className="text-4xl font-bold text-accent mb-2">
+                                            {agents.length > 0 ? (agents.reduce((sum, a) => sum + (a.win_rate || 0), 0) / agents.length).toFixed(1) : '0.0'}%
+                                        </div>
+                                        <div className="text-sm text-gray-400 uppercase tracking-wider">Taux Moyen</div>
+                                    </div>
+                                    <div className="text-center group hover:scale-105 transition-transform">
+                                        <div className="text-4xl font-bold text-accent-pink mb-2">
+                                            ${agents.reduce((sum, a) => sum + a.total_value, 0).toFixed(0)}
+                                        </div>
+                                        <div className="text-sm text-gray-400 uppercase tracking-wider">Valeur Totale</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                    )}
 
-                        {/* AI Models Display */}
-                        <ModelDisplay />
+                    {activeTab === 'charts' && (
+                        <ErrorBoundary>
+                            <PerformanceCharts agents={agents} />
+                        </ErrorBoundary>
+                    )}
 
-                        {/* Agent Cards Grid */}
-                        <div>
-                            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                                <span className="w-1 h-8 bg-primary rounded-full" />
-                                Détails par Agent
+                    {activeTab === 'learning' && (
+                        <ErrorBoundary>
+                            <LearningDashboard />
+                        </ErrorBoundary>
+                    )}
+
+                    {activeTab === 'crew' && (
+                        <ErrorBoundary>
+                            <CrewDashboard />
+                        </ErrorBoundary>
+                    )}
+
+                    {activeTab === 'live' && (
+                        <div className="glass-card p-6 min-h-[600px]">
+                            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                                <Activity className="text-primary animate-pulse" />
+                                Messages en Temps Réel
                             </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {agents.map(agent => {
-                                    // Find matching model info
-                                    const modelInfo = Object.values(agentModels).find(
-                                        (m: any) => m.name === agent.name
-                                    ) as any;
-
-                                    return (
-                                        <AgentCard
-                                            key={agent.name}
-                                            agent={{
-                                                ...agent,
-                                                model: modelInfo?.model,
-                                                model_category: modelInfo?.category,
-                                            }}
-                                            onClick={() => console.log('View agent details:', agent.name)}
-                                        />
-                                    );
-                                })}
-                            </div>
+                            <LiveMessageFeed messages={messages} maxMessages={100} />
                         </div>
+                    )}
+                </div>
+            </Shell>
 
-                        {/* Quick Stats */}
-                        <div className="glass-card p-8">
-                            <h2 className="text-2xl font-bold mb-6 text-glow">Statistiques Rapides</h2>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                                <div className="text-center group hover:scale-105 transition-transform">
-                                    <div className="text-4xl font-bold text-primary mb-2 group-hover:text-primary-glow transition-colors">
-                                        {agents.length}
-                                    </div>
-                                    <div className="text-sm text-gray-400 uppercase tracking-wider">Agents Actifs</div>
-                                </div>
-                                <div className="text-center group hover:scale-105 transition-transform">
-                                    <div className="text-4xl font-bold text-success mb-2 group-hover:text-success-glow transition-colors">
-                                        {agents.reduce((sum, a) => sum + a.total_trades, 0)}
-                                    </div>
-                                    <div className="text-sm text-gray-400 uppercase tracking-wider">Trades Totaux</div>
-                                </div>
-                                <div className="text-center group hover:scale-105 transition-transform">
-                                    <div className="text-4xl font-bold text-accent mb-2">
-                                        {agents.length > 0 ? (agents.reduce((sum, a) => sum + (a.win_rate || 0), 0) / agents.length).toFixed(1) : '0.0'}%
-                                    </div>
-                                    <div className="text-sm text-gray-400 uppercase tracking-wider">Taux Moyen</div>
-                                </div>
-                                <div className="text-center group hover:scale-105 transition-transform">
-                                    <div className="text-4xl font-bold text-accent-pink mb-2">
-                                        ${agents.reduce((sum, a) => sum + a.total_value, 0).toFixed(0)}
-                                    </div>
-                                    <div className="text-sm text-gray-400 uppercase tracking-wider">Valeur Totale</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'charts' && (
-                    <ErrorBoundary>
-                        <PerformanceCharts agents={agents} />
-                    </ErrorBoundary>
-                )}
-
-                {activeTab === 'crew' && (
-                    <ErrorBoundary>
-                        <CrewDashboard />
-                    </ErrorBoundary>
-                )}
-
-                {activeTab === 'live' && (
-                    <div className="glass-card p-6 min-h-[600px]">
-                        <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                            <Activity className="text-primary animate-pulse" />
-                            Messages en Temps Réel
-                        </h2>
-                        <LiveMessageFeed messages={messages} maxMessages={100} />
-                    </div>
-                )}
-            </div>
-        </Shell>
+            {/* Agent Detail Modal */}
+            {selectedAgent && (
+                <AgentDetailModal
+                    agentName={selectedAgent}
+                    onClose={() => setSelectedAgent(null)}
+                />
+            )}
+        </>
     );
 }
