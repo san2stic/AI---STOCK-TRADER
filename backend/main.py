@@ -593,6 +593,57 @@ async def set_trading_mode_setting(update: TradingModeUpdate):
     return {"status": "success", "mode": mode}
 
 
+@app.get("/api/next-scan")
+async def get_next_scan_info():
+    """Get information about the next scheduled position analysis scan."""
+    from scheduler import start_scheduler
+    
+    # Get the position analysis interval from settings
+    position_interval = getattr(settings, 'position_analysis_interval_minutes', 60)
+    
+    # Calculate next scan time based on the interval
+    # Since the scheduler runs at minute=0 for hourly intervals,
+    # we need to calculate the next scheduled time
+    now = datetime.utcnow()
+    
+    if position_interval >= 60:
+        hours = position_interval // 60
+        # Next scan is at the next hour divisible by the interval
+        current_hour = now.hour
+        next_scan_hour = ((current_hour // hours) + 1) * hours
+        
+        if next_scan_hour >= 24:
+            next_scan_hour = next_scan_hour % 24
+            # Add a day if it wraps around
+            from datetime import timedelta
+            next_scan = datetime(now.year, now.month, now.day, next_scan_hour, 0, 0)
+            if next_scan <= now:
+                next_scan += timedelta(days=1)
+        else:
+            next_scan = datetime(now.year, now.month, now.day, next_scan_hour, 0, 0)
+    else:
+        # For minute-based intervals
+        current_minute = now.minute
+        next_scan_minute = ((current_minute // position_interval) + 1) * position_interval
+        
+        if next_scan_minute >= 60:
+            from datetime import timedelta
+            next_scan = datetime(now.year, now.month, now.day, now.hour, 0, 0) + timedelta(hours=1)
+        else:
+            next_scan = datetime(now.year, now.month, now.day, now.hour, next_scan_minute, 0)
+    
+    # Calculate seconds until next scan
+    seconds_until = (next_scan - now).total_seconds()
+    
+    return {
+        "interval_minutes": position_interval,
+        "interval_hours": position_interval / 60,
+        "next_scan_utc": next_scan.isoformat(),
+        "seconds_until_next_scan": int(seconds_until),
+        "current_time_utc": now.isoformat(),
+    }
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time updates."""

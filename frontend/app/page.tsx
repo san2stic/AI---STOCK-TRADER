@@ -17,6 +17,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ModelDisplay from './components/ModelDisplay';
 import LearningDashboard from './components/LearningDashboard';
 import AgentDetailModal from './components/AgentDetailModal';
+import NextScanCountdown from './components/NextScanCountdown';
 import useApi from './hooks/useApi';
 
 interface Agent {
@@ -181,6 +182,9 @@ export default function Home() {
                         <div className="space-y-8">
                             {/* Live ScoreBoard */}
                             <LiveScoreBoard agents={agents} />
+
+                            {/* Next Scan Countdown */}
+                            <NextScanCountdown />
 
                             {/* Global Trading Mode Control */}
                             <TradingModeControl />
