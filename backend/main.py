@@ -206,7 +206,7 @@ async def health_check():
     }
 
 
-@app.get("/agents")
+@app.get("/api/agents")
 async def list_agents():
     """List all agents and their performance."""
     with get_db() as db:
@@ -230,7 +230,7 @@ async def list_agents():
         return {"agents": agents_data}
 
 
-@app.get("/agents/{agent_name}")
+@app.get("/api/agents/{agent_name}")
 async def get_agent_details(agent_name: str):
     """Get detailed information about a specific agent."""
     with get_db() as db:
@@ -303,7 +303,7 @@ async def get_agent_details(agent_name: str):
         }
 
 
-@app.get("/trades")
+@app.get("/api/trades")
 async def get_all_trades(limit: int = 50):
     """Get recent trades across all agents."""
     with get_db() as db:
@@ -328,21 +328,21 @@ async def get_all_trades(limit: int = 50):
         }
 
 
-@app.post("/trading/pause")
+@app.post("/api/trading/pause")
 async def pause_trading():
     """Pause automatic trading."""
     # TODO: Implement pause logic in scheduler
     return {"status": "paused"}
 
 
-@app.post("/trading/resume")
+@app.post("/api/trading/resume")
 async def resume_trading():
     """Resume automatic trading."""
     # TODO: Implement resume logic in scheduler
     return {"status": "resumed"}
 
 
-@app.post("/agents/{agent_name}/reflect")
+@app.post("/api/agents/{agent_name}/reflect")
 async def trigger_reflection(agent_name: str):
     """Manually trigger agent reflection."""
     agent_map = {
@@ -364,7 +364,7 @@ async def trigger_reflection(agent_name: str):
     return result
 
 
-@app.get("/funds/realtime")
+@app.get("/api/funds/realtime")
 async def get_realtime_funds():
     """Get real-time funds information across all agents."""
     with get_db() as db:
@@ -414,7 +414,7 @@ async def get_realtime_funds():
         }
 
 
-@app.get("/performance/breakdown")
+@app.get("/api/performance/breakdown")
 async def get_performance_breakdown():
     """Get performance breakdown by asset type (stocks vs crypto)."""
     with get_db() as db:

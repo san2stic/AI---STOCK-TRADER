@@ -31,7 +31,9 @@ export default function RealTimeFunds() {
     const fetchFunds = async () => {
         try {
             const res = await fetch('/api/funds/realtime');
+            if (!res.ok) throw new Error('Failed to fetch funds');
             const data = await res.json();
+            if (!data || !data.totals) throw new Error('Invalid funds data');
             setFunds(data);
             setLoading(false);
 
@@ -58,7 +60,7 @@ export default function RealTimeFunds() {
         );
     }
 
-    const isProfitable = funds.totals.pnl >= 0;
+    const isProfitable = funds?.totals?.pnl ? funds.totals.pnl >= 0 : false;
     const stockPercentage = funds.totals.total_value > 0
         ? (funds.totals.stock_value / funds.totals.total_value) * 100
         : 0;

@@ -48,7 +48,9 @@ export default function StockCryptoSplit() {
     const fetchData = async () => {
         try {
             const res = await fetch('/api/performance/breakdown');
+            if (!res.ok) throw new Error('Failed to fetch breakdown');
             const result = await res.json();
+            if (!result || !result.breakdown) throw new Error('Invalid breakdown data');
             setData(result);
             setLoading(false);
         } catch (error) {
@@ -95,8 +97,8 @@ export default function StockCryptoSplit() {
                     <button
                         onClick={() => setFilter('stocks')}
                         className={`relative px-6 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${filter === 'stocks'
-                                ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/50'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/50'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         <span className="flex items-center gap-2">
@@ -107,8 +109,8 @@ export default function StockCryptoSplit() {
                     <button
                         onClick={() => setFilter('all')}
                         className={`relative px-6 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${filter === 'all'
-                                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/50'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/50'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         Tous
@@ -116,8 +118,8 @@ export default function StockCryptoSplit() {
                     <button
                         onClick={() => setFilter('crypto')}
                         className={`relative px-6 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${filter === 'crypto'
-                                ? 'bg-gradient-to-r from-orange-500 to-pink-600 text-white shadow-lg shadow-orange-500/50'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'bg-gradient-to-r from-orange-500 to-pink-600 text-white shadow-lg shadow-orange-500/50'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         <span className="flex items-center gap-2">
