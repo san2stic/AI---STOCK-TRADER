@@ -139,6 +139,103 @@ class RiskManager:
             
             return is_active
     
+    def calculate_max_quantity(
+        self,
+        agent_name: str,
+        symbol: str,
+        price: float,
+    ) -> Dict[str, Any]:
+        """
+        Calculate maximum safe quantity for a trade based on portfolio constraints.
+        
+        This is used for PRE-VALIDATION before crew deliberation to prevent
+        proposing impossible trades.
+        
+        Args:
+            agent_name: Name of the agent
+            symbol: Trading symbol
+            price: Current price per share/unit
+            
+        Returns:
+            {"max_quantity": int, "max_value": float, "portfolio_value": float, "reason": str}
+        """
+        if price <= 0:
+            return {
+                "max_quantity": 0,
+                "max_value": 0,
+                "portfolio_value": 0,
+                "reason": "Invalid price (zero or negative)",
+            }
+        
+        with get_db() as db:
+            portfolio = db.query(Portfolio).filter(
+                Portfolio.agent_name == agent_name
+            ).first()
+            
+            if not portfolio:
+                # No portfolio found - use initial capital as fallback
+                portfolio_value = settings.initial_capital
+                cash = portfolio_value
+                logger.warning(
+                    "no_portfolio_found_using_default",
+                    agent=agent_name,
+                    default_capital=portfolio_value,
+                )
+            else:
+                portfolio_value = portfolio.total_value
+                cash = portfolio.cash
+        
+        # Get agent-specific config
+        agent_key = agent_name.replace(" ", "").lower()
+        for key in AGENT_CONFIGS.keys():
+            if key in agent_key:
+                agent_key = key
+                break
+        
+        agent_config = AGENT_CONFIGS.get(agent_key, {})
+        
+        # Calculate max position value based on settings and agent config
+        max_percent = settings.max_trade_percent / 100
+        agent_max = agent_config.get("max_position_size", max_percent)
+        
+        # Use the more restrictive of the two
+        effective_max_percent = min(max_percent, agent_max)
+        
+        # For crypto, apply additional multiplier
+        if symbol.endswith("USDT") or symbol.endswith("BUSD"):
+            crypto_multiplier = agent_config.get("crypto_risk_multiplier", 1.0)
+            effective_max_percent *= crypto_multiplier
+        
+        # Calculate max trade value
+        max_trade_value = portfolio_value * effective_max_percent
+        
+        # Also can't spend more than available cash
+        max_trade_value = min(max_trade_value, cash)
+        
+        # Calculate max quantity (floor to ensure we don't exceed limit)
+        max_quantity = int(max_trade_value / price)
+        
+        # Ensure at least 0 (never negative)
+        max_quantity = max(0, max_quantity)
+        
+        logger.info(
+            "calculated_max_quantity",
+            agent=agent_name,
+            symbol=symbol,
+            price=price,
+            portfolio_value=portfolio_value,
+            max_percent=effective_max_percent * 100,
+            max_trade_value=max_trade_value,
+            max_quantity=max_quantity,
+        )
+        
+        return {
+            "max_quantity": max_quantity,
+            "max_value": max_trade_value,
+            "portfolio_value": portfolio_value,
+            "reason": f"Max {effective_max_percent*100:.1f}% of ${portfolio_value:.2f} portfolio = ${max_trade_value:.2f}",
+        }
+    
     def check_stop_loss(self, agent_name: str) -> list[Dict[str, Any]]:
         """
         Check all positions for stop-loss triggers.

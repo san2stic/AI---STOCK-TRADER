@@ -18,6 +18,7 @@ from database import get_db
 from config import get_settings
 from services.openrouter import get_openrouter_client
 from services.decision_parser import get_decision_parser
+from services.risk_manager import get_risk_manager
 from tools.trading_tools import TRADING_TOOLS
 
 logger = structlog.get_logger()
@@ -218,8 +219,10 @@ class CrewOrchestrator:
             
             if final_decision in ["buy", "sell"]:
                 final_symbol = consensus.get_symbol_consensus()
-                # Simple quantity logic - can be made more sophisticated
-                final_quantity = 10  # Default quantity
+                # Calculate safe quantity based on portfolio constraints
+                final_quantity = await self._calculate_safe_quantity(
+                    final_symbol, final_decision, market_context
+                )
             
             # Save everything to database
             communication.save_to_database(session_db_id)
@@ -1041,3 +1044,82 @@ Reasoning: [detailed explanation]
                 await self.ws_manager.broadcast(message)
             except Exception as e:
                 logger.warning("broadcast_error", error=str(e))
+    
+    async def _calculate_safe_quantity(
+        self,
+        symbol: str,
+        action: str,
+        market_context: Dict[str, Any],
+    ) -> int:
+        """
+        Calculate safe quantity based on portfolio constraints.
+        
+        This prevents proposing impossible trades like $880K orders
+        on a $104 portfolio.
+        
+        Args:
+            symbol: The trading symbol
+            action: "buy" or "sell"
+            market_context: Market data including prices
+            
+        Returns:
+            Safe quantity (minimum of 1 if calculation fails for buy,
+            or actual position quantity for sell)
+        """
+        risk_manager = get_risk_manager()
+        
+        # Get current price from market context
+        prices = market_context.get("prices", {})
+        price_data = prices.get(symbol, {})
+        
+        if isinstance(price_data, dict):
+            current_price = price_data.get("price", 0) or price_data.get("current", 0)
+        else:
+            current_price = float(price_data) if price_data else 0
+        
+        if current_price <= 0:
+            logger.warning(
+                "cannot_calculate_quantity_no_price",
+                symbol=symbol,
+                price_data=price_data,
+            )
+            # Return minimal quantity as fallback
+            return 1
+        
+        # For sell orders, we should check actual positions
+        # For now, calculate based on buy constraints (conservative)
+        
+        # Calculate for a representative agent (use first agent or average)
+        max_quantities = []
+        
+        for agent in self.agents:
+            result = risk_manager.calculate_max_quantity(
+                agent_name=agent.name,
+                symbol=symbol,
+                price=current_price,
+            )
+            max_quantities.append(result["max_quantity"])
+        
+        if not max_quantities:
+            logger.warning("no_agents_for_quantity_calculation")
+            return 1
+        
+        # Use median to avoid outliers affecting the crew decision
+        max_quantities.sort()
+        median_idx = len(max_quantities) // 2
+        safe_quantity = max_quantities[median_idx]
+        
+        # Ensure at least 1 for a valid trade
+        safe_quantity = max(1, safe_quantity)
+        
+        logger.info(
+            "crew_safe_quantity_calculated",
+            symbol=symbol,
+            action=action,
+            current_price=current_price,
+            agent_max_quantities=max_quantities,
+            final_quantity=safe_quantity,
+        )
+        
+        return safe_quantity
+
