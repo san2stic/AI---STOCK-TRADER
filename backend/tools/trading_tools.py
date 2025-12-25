@@ -572,6 +572,28 @@ TRADING_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_web",
+            "description": "Search the web for general information, news, or specific topics using DuckDuckGo. Use this tool when you need information not covered by specific stock/crypto tools.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return",
+                        "default": 10,
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
 
@@ -600,6 +622,7 @@ class TradingTools:
             "get_stock_price": self.get_stock_price,
             "get_historical_data": self.get_historical_data,
             "search_news": self.search_news,
+            "search_web": self.search_web,
             "search_twitter": self.search_twitter,
             "buy_stock": self.buy_stock,
             "sell_stock": self.sell_stock,
@@ -713,6 +736,26 @@ class TradingTools:
             "query": query,
             "tweets": tweets[:20],  # Limit to 20
         }
+
+    async def search_web(self, query: str, max_results: int = 10) -> Dict[str, Any]:
+        """Search the web using DuckDuckGo."""
+        try:
+            from duckduckgo_search import DDGS
+            
+            results = []
+            # Use sync DDGS in async context is okay for small requests.
+            # Use backend='html' to avoid rate limits on the API which are common in data center IPs.
+            with DDGS() as ddgs:
+                for r in ddgs.text(query, max_results=max_results, backend='html'):
+                    results.append(r)
+            
+            return {
+                "query": query,
+                "results": results,
+            }
+        except Exception as e:
+            logger.error("web_search_failed", query=query, error=str(e))
+            return {"error": f"Search failed: {str(e)}"}
     
     async def buy_stock(self, symbol: str, quantity: int) -> Dict[str, Any]:
         """Execute buy order."""

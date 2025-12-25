@@ -39,24 +39,40 @@ class BaseAgent(ABC):
             # Determine category for this agent
             category = selector.get_category_for_agent(agent_key, self.personality)
             
-            # Try to get best model for category (use try/except for startup)
+            # Dynamic but Static: Prefer configured model if available
+            preferred_model = self.config["model"]
+            best_model = None
+            
             try:
                 import asyncio
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    # Running in async context, schedule task
-                    models = {}
+                    # Running in async context is tricky for synchronous init
+                    # For safety in async context, we might default to static or need await
+                    # But since this is __init__, we can't await. 
+                    # We'll rely on the selector's cache or fallback.
+                    pass
                 else:
-                    # Not in async context, create new loop
-                    models = asyncio.run(selector.select_best_models())
+                    # Check if preferred model is available
+                    is_available = asyncio.run(selector.is_model_available(preferred_model))
+                    
+                    if is_available:
+                        best_model = preferred_model
+                    else:
+                        # Fallback to category best if preferred is down
+                        models = asyncio.run(selector.select_best_models())
+                        best_model = models.get(category, preferred_model)
                 
-                self.model = models.get(category, self.config["model"])
+                # If we couldn't determine (e.g. running loop), default to config
+                self.model = best_model if best_model else preferred_model
                 self.model_category = category
+                
                 logger.info(
-                    "agent_using_dynamic_model",
+                    "agent_model_selected",
                     name=self.name,
                     category=category,
                     model=self.model,
+                    source="config" if self.model == preferred_model else "dynamic_fallback"
                 )
             except Exception as e:
                 # Fallback to static model if dynamic selection fails

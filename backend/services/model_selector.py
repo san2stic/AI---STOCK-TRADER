@@ -307,6 +307,14 @@ class ModelSelector:
         # Default to finance for trading system
         return "finance"
 
+    async def is_model_available(self, model_id: str) -> bool:
+        """Check if a specific model is available in the candidate list."""
+        if model_id not in STATIC_CANDIDATES:
+            return False
+            
+        models = await self.get_available_models()
+        return any(m.get("id") == model_id for m in models)
+
 
 # Singleton instance
 _selector: Optional[ModelSelector] = None
