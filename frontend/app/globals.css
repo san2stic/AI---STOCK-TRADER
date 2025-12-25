@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 10, 10, 15;
+  --foreground: 255, 255, 255;
+
+  --primary-glow: conic-gradient(from 180deg at 50% 50%, #16abff33 0deg, #0885ff33 55deg, #54d6ff33 120deg, #0071ff33 160deg, transparent 360deg);
+  --secondary-glow: radial-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+}
+
+@layer base {
+  body {
+    @apply bg-background text-white antialiased overflow-x-hidden;
+    background-image:
+      radial-gradient(circle at 15% 50%, rgba(79, 172, 254, 0.08), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(240, 147, 251, 0.08), transparent 25%);
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-lg;
+  }
+
+  .glass-card {
+    @apply bg-card-gradient backdrop-blur-xl border border-white/10 shadow-xl rounded-2xl;
+  }
+
+  .glass-hover {
+    @apply hover:bg-white/10 transition-all duration-300;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+
+  .text-glow-primary {
+    text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+  }
+
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  }
+}
+
+/* Global Animations */
+.hover-scale {
+  @apply transition-transform duration-200 hover:scale-[1.02];
+}
+
+/* Chart Tooltip Customization */
+.recharts-tooltip-cursor {
+  stroke: rgba(255, 255, 255, 0.1) !important;
+}
+
+.recharts-default-tooltip {
+  @apply !bg-[#13131f]/90 !backdrop-blur-md !border-white/10 !rounded-lg !shadow-xl !text-white;
+}

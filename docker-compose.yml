@@ -1,0 +1,214 @@
+services:
+  # PostgreSQL database for trade history and decisions
+  postgres:
+    image: postgres:16-alpine
+    container_name: trading-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - trading-network
+
+  # Redis for caching and real-time state
+  redis:
+    image: redis:7-alpine
+    container_name: trading-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - trading-network
+
+  # Backend FastAPI application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trading-backend
+    environment:
+      # Trading Configuration
+      - TRADING_MODE=${TRADING_MODE}
+      - INITIAL_CAPITAL=${INITIAL_CAPITAL}
+      - RUN_ANALYSIS_ON_STARTUP=${RUN_ANALYSIS_ON_STARTUP:-false}
+
+      # OpenRouter API
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL}
+
+      # Alpaca Markets API
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_API_SECRET=${ALPACA_API_SECRET}
+      - ALPACA_BASE_URL=${ALPACA_BASE_URL}
+
+      # Binance API (Crypto Trading)
+      - BINANCE_API_KEY=${BINANCE_API_KEY}
+      - BINANCE_API_SECRET=${BINANCE_API_SECRET}
+      - BINANCE_TESTNET=${BINANCE_TESTNET:-true}
+
+      # Data Sources
+      - NEWS_API_KEY=${NEWS_API_KEY}
+      - TWITTER_API_KEY=${TWITTER_API_KEY:-}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET:-}
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN:-}
+
+      # Database
+      - DATABASE_URL=${DATABASE_URL}
+
+      # Redis
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+
+      # Risk Management
+      - MAX_TRADE_PERCENT=${MAX_TRADE_PERCENT}
+      - STOP_LOSS_PERCENT=${STOP_LOSS_PERCENT}
+      - CIRCUIT_BREAKER_PERCENT=${CIRCUIT_BREAKER_PERCENT}
+      - MAX_POSITIONS=${MAX_POSITIONS:-10}
+
+      # Crypto Risk Management
+      - CRYPTO_ENABLED=${CRYPTO_ENABLED:-true}
+      - USE_ALL_BINANCE_PAIRS=${USE_ALL_BINANCE_PAIRS:-true}
+      - ALLOWED_CRYPTO_PAIRS=${ALLOWED_CRYPTO_PAIRS:-}
+      - CRYPTO_TRADE_PERCENT=${CRYPTO_TRADE_PERCENT:-5}
+      - CRYPTO_STOP_LOSS_PERCENT=${CRYPTO_STOP_LOSS_PERCENT:-20}
+
+      # Market Configuration
+      - US_MARKET_OPEN_HOUR=${US_MARKET_OPEN_HOUR:-9}
+      - US_MARKET_OPEN_MINUTE=${US_MARKET_OPEN_MINUTE:-30}
+      - US_MARKET_CLOSE_HOUR=${US_MARKET_CLOSE_HOUR:-16}
+      - US_MARKET_CLOSE_MINUTE=${US_MARKET_CLOSE_MINUTE:-0}
+      - EUROPE_MARKET_OPEN_HOUR=${EUROPE_MARKET_OPEN_HOUR:-9}
+      - EUROPE_MARKET_OPEN_MINUTE=${EUROPE_MARKET_OPEN_MINUTE:-0}
+      - EUROPE_MARKET_CLOSE_HOUR=${EUROPE_MARKET_CLOSE_HOUR:-17}
+      - EUROPE_MARKET_CLOSE_MINUTE=${EUROPE_MARKET_CLOSE_MINUTE:-30}
+      - ASIA_MARKET_OPEN_HOUR=${ASIA_MARKET_OPEN_HOUR:-9}
+      - ASIA_MARKET_OPEN_MINUTE=${ASIA_MARKET_OPEN_MINUTE:-0}
+      - ASIA_MARKET_CLOSE_HOUR=${ASIA_MARKET_CLOSE_HOUR:-15}
+      - ASIA_MARKET_CLOSE_MINUTE=${ASIA_MARKET_CLOSE_MINUTE:-0}
+      - ACTIVE_MARKETS=${ACTIVE_MARKETS:-US,EUROPE}
+      - MARKET_STRATEGY=${MARKET_STRATEGY:-ANY}
+      - TRADING_INTERVAL_MINUTES=${TRADING_INTERVAL_MINUTES:-30}
+      - ENABLE_EXTENDED_HOURS=${ENABLE_EXTENDED_HOURS:-false}
+      - ENFORCE_MARKET_HOURS=${ENFORCE_MARKET_HOURS:-true}
+
+      # Market Calendar & Economic Events
+      - ENABLE_HOLIDAY_CHECK=${ENABLE_HOLIDAY_CHECK:-true}
+      - ENABLE_ECONOMIC_CALENDAR=${ENABLE_ECONOMIC_CALENDAR:-true}
+      - ECONOMIC_CALENDAR_API_KEY=${ECONOMIC_CALENDAR_API_KEY:-}
+      - ECONOMIC_EVENT_STRATEGY=${ECONOMIC_EVENT_STRATEGY:-CAUTIOUS}
+      - HIGH_IMPACT_POSITION_REDUCTION=${HIGH_IMPACT_POSITION_REDUCTION:-0.5}
+      - PAUSE_BEFORE_EVENT_HOURS=${PAUSE_BEFORE_EVENT_HOURS:-2}
+      - PAUSE_AFTER_EVENT_HOURS=${PAUSE_AFTER_EVENT_HOURS:-1}
+      - HIGH_IMPACT_EVENTS=${HIGH_IMPACT_EVENTS:-FOMC,NFP,CPI,GDP,ECB,UNEMPLOYMENT}
+
+      # Crew Configuration
+      - ENABLE_CREW_MODE=${ENABLE_CREW_MODE:-true}
+      - CREW_DELIBERATION_ROUNDS=${CREW_DELIBERATION_ROUNDS:-2}
+      - CREW_MIN_CONSENSUS_PERCENT=${CREW_MIN_CONSENSUS_PERCENT:-66}
+      - CREW_ENABLE_MEDIATOR=${CREW_ENABLE_MEDIATOR:-true}
+      - CREW_MEDIATOR_MODEL=${CREW_MEDIATOR_MODEL:-openai/gpt-4-turbo-preview}
+      - CREW_VOTE_WEIGHTING=${CREW_VOTE_WEIGHTING:-PERFORMANCE_BASED}
+      - CREW_MAX_MESSAGES_PER_ROUND=${CREW_MAX_MESSAGES_PER_ROUND:-3}
+      - ENABLE_ORDER_VALIDATION=${ENABLE_ORDER_VALIDATION:-true}
+      - ORDER_VALIDATOR_MODEL=${ORDER_VALIDATOR_MODEL:-anthropic/claude-sonnet-4.5}
+
+      # Agent Configuration
+      - AUTO_CRITIQUE_FREQUENCY=${AUTO_CRITIQUE_FREQUENCY:-5}
+      - ALLOWED_SYMBOLS=${ALLOWED_SYMBOLS:-}
+
+      # Security
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}
+      - JWT_EXPIRATION_HOURS=${JWT_EXPIRATION_HOURS:-24}
+
+      # Monitoring
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - STRUCTURED_LOGGING=${STRUCTURED_LOGGING:-true}
+      - ENABLE_EMAIL_NOTIFICATIONS=${ENABLE_EMAIL_NOTIFICATIONS:-false}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - NOTIFICATION_EMAIL=${NOTIFICATION_EMAIL:-}
+    volumes:
+      - ./backend:/app
+      - logs_data:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - trading-network
+
+  # Frontend Next.js dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: trading-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
+      - API_URL=http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - trading-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: trading-nginx
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - trading-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  logs_data:
+    driver: local
+
+networks:
+  trading-network:
+    driver: bridge

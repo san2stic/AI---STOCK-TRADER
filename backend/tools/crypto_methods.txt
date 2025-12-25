@@ -1,0 +1,262 @@
+"""
+Trading tools available to AI agents via function calling.
+Implements get_stock_price, buy_stock, sell_stock, crypto trading, etc.
+"""
+from typing import Dict, Any, List, Optional
+from datetime import datetime, timedelta
+import structlog
+from config import get_settings
+from models.database import Trade, TradeAction, TradeStatus, Portfolio, AssetType
+from database import get_db
+
+logger = structlog.get_logger()
+settings = get_settings()
+
+
+# CRYPTO METHODS - Add to end of file after get_earnings_calendar
+
+    # ===== CRYPTO TRADING METHODS =====
+    
+    async def get_crypto_price(self, symbol: str) -> Dict[str, Any]:
+        """Get current cryptocurrency price."""
+        from services.binance_connector import get_binance_connector
+        
+        symbol = symbol.upper()
+        binance = get_binance_connector()
+        price_data = await binance.get_crypto_price(symbol)
+        
+        if not price_data:
+            return {"error": f"Could not get price for {symbol}"}
+        
+        return {
+            "symbol": symbol,
+            "price": price_data.get("price"),
+            "change": price_data.get("change"),
+            "change_percent": price_data.get("change_percent"),
+            "volume": price_data.get("volume"),
+            "high_24h": price_data.get("high_24h"),
+            "low_24h": price_data.get("low_24h"),
+            "bid": price_data.get("bid"),
+            "ask": price_data.get("ask"),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    
+    async def buy_crypto(self, symbol: str, quantity: float) -> Dict[str, Any]:
+        """Execute buy order for cryptocurrency."""
+        from services.risk_manager import get_risk_manager
+        from services.binance_connector import get_binance_connector
+        
+        symbol = symbol.upper()
+        
+        # Validate symbol is allowed
+        allowed = settings.get_allowed_crypto_pairs()
+        if allowed and symbol not in allowed:
+            return {"error": f"Crypto pair {symbol} not in allowed list"}
+        
+        # Get current portfolio
+        with get_db() as db:
+            portfolio = db.query(Portfolio).filter(
+                Portfolio.agent_name == self.agent_name
+            ).first()
+            
+            if not portfolio:
+                return {"error": "Portfolio not found"}
+            
+            # Get current price
+            binance = get_binance_connector()
+            price_data = await binance.get_crypto_price(symbol)
+            price = price_data.get("price") if price_data else None
+            
+            if not price:
+                return {"error": "Could not get current price"}
+            
+            total_cost = price * quantity
+            
+            # Check cash available
+            if portfolio.cash < total_cost:
+                return {
+                    "error": f"Insufficient cash. Need ${total_cost:.2f}, have ${portfolio.cash:.2f}"
+                }
+            
+            # Execute trade
+            execution = await binance.place_order(
+                symbol=symbol,
+                action="BUY",
+                quantity=quantity,
+            )
+            
+            if execution.get("status") == "filled":
+                # Update portfolio
+                positions = portfolio.positions or {}
+                if symbol in positions:
+                    # Average cost
+                    existing = positions[symbol]
+                    total_qty = existing["quantity"] + quantity
+                    avg_price = (
+                        (existing["quantity"] * existing["avg_price"]) +
+                        (quantity * price)
+                    ) / total_qty
+                    positions[symbol] = {
+                        "quantity": total_qty,
+                        "avg_price": avg_price,
+                        "asset_type": "CRYPTO",
+                    }
+                else:
+                    positions[symbol] = {
+                        "quantity": quantity,
+                        "avg_price": price,
+                        "asset_type": "CRYPTO",
+                    }
+                
+                portfolio.cash -= total_cost
+                portfolio.positions = positions
+                portfolio.total_trades += 1
+                
+                # Log trade
+                trade = Trade(
+                    agent_name=self.agent_name,
+                    symbol=symbol,
+                    asset_type=AssetType.CRYPTO,
+                    action=TradeAction.BUY,
+                    quantity=quantity,
+                    price=price,
+                    total_value=total_cost,
+                    status=TradeStatus.EXECUTED,
+                    executed_at=datetime.utcnow(),
+                    portfolio_value_before=portfolio.total_value,
+                    cash_before=portfolio.cash + total_cost,
+                )
+                db.add(trade)
+                db.commit()
+                
+                logger.info(
+                    "crypto_trade_executed",
+                    agent=self.agent_name,
+                    action="BUY",
+                    symbol=symbol,
+                    quantity=quantity,
+                    price=price,
+                )
+                
+                return {
+                    "status": "success",
+                    "action": "BUY",
+                    "symbol": symbol,
+                    "quantity": quantity,
+                    "price": price,
+                    "total_cost": total_cost,
+                    "cash_remaining": portfolio.cash,
+                    "asset_type": "CRYPTO",
+                }
+            else:
+                return {"error": f"Trade failed: {execution.get('error')}"}
+    
+    async def sell_crypto(self, symbol: str, quantity: float) -> Dict[str, Any]:
+        """Execute sell order for cryptocurrency."""
+        from services.binance_connector import get_binance_connector
+        
+        symbol = symbol.upper()
+        
+        with get_db() as db:
+            portfolio = db.query(Portfolio).filter(
+                Portfolio.agent_name == self.agent_name
+            ).first()
+            
+            if not portfolio:
+                return {"error": "Portfolio not found"}
+            
+            # Check if we own the crypto
+            positions = portfolio.positions or {}
+            if symbol not in positions:
+                return {"error": f"You don't own {symbol}"}
+            
+            position = positions[symbol]
+            
+            # Check if it's a crypto position
+            if position.get("asset_type") != "CRYPTO":
+                return {"error": f"{symbol} is not a crypto position, use sell_stock instead"}
+            
+            if position["quantity"] < quantity:
+                return {
+                    "error": f"Insufficient {symbol}. Own {position['quantity']}, trying to sell {quantity}"
+                }
+            
+            # Get current price
+            binance = get_binance_connector()
+            price_data = await binance.get_crypto_price(symbol)
+            price = price_data.get("price") if price_data else None
+            
+            if not price:
+                return {"error": "Could not get current price"}
+            
+            total_proceeds = price * quantity
+            
+            # Execute trade
+            execution = await binance.place_order(
+                symbol=symbol,
+                action="SELL",
+                quantity=quantity,
+            )
+            
+            if execution.get("status") == "filled":
+                # Update portfolio
+                position["quantity"] -= quantity
+                if position["quantity"] <= 0.0001:  # Close to zero for crypto
+                    del positions[symbol]
+                else:
+                    positions[symbol] = position
+                
+                portfolio.cash += total_proceeds
+                portfolio.positions = positions
+                portfolio.total_trades += 1
+                
+                # Calculate P&L
+                cost_basis = position["avg_price"] * quantity
+                pnl = total_proceeds - cost_basis
+                portfolio.realized_pnl += pnl
+                
+                if pnl > 0:
+                    portfolio.winning_trades += 1
+                else:
+                    portfolio.losing_trades += 1
+                
+                # Log trade
+                trade = Trade(
+                    agent_name=self.agent_name,
+                    symbol=symbol,
+                    asset_type=AssetType.CRYPTO,
+                    action=TradeAction.SELL,
+                    quantity=quantity,
+                    price=price,
+                    total_value=total_proceeds,
+                    status=TradeStatus.EXECUTED,
+                    executed_at=datetime.utcnow(),
+                    portfolio_value_before=portfolio.total_value,
+                    cash_before=portfolio.cash - total_proceeds,
+                )
+                db.add(trade)
+                db.commit()
+                
+                logger.info(
+                    "crypto_trade_executed",
+                    agent=self.agent_name,
+                    action="SELL",
+                    symbol=symbol,
+                    quantity=quantity,
+                    price=price,
+                    pnl=pnl,
+                )
+                
+                return {
+                    "status": "success",
+                    "action": "SELL",
+                    "symbol": symbol,
+                    "quantity": quantity,
+                    "price": price,
+                    "total_proceeds": total_proceeds,
+                    "pnl": pnl,
+                    "cash_total": portfolio.cash,
+                    "asset_type": "CRYPTO",
+                }
+            else:
+                return {"error": f"Trade failed: {execution.get('error')}"}
