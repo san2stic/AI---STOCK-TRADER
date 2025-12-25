@@ -368,36 +368,91 @@ async def trigger_reflection(agent_name: str):
 @app.get("/api/funds/realtime")
 async def get_realtime_funds():
     """Get real-time funds information across all agents."""
+    from services.data_collector import get_data_collector
+    from services.binance_connector import get_binance_connector
+    
+    collector = get_data_collector()
+    binance = get_binance_connector()
+    
     with get_db() as db:
         portfolios = db.query(Portfolio).all()
         
-        # Calculate totals
-        total_cash = sum(p.cash for p in portfolios)
-        total_value = sum(p.total_value for p in portfolios)
-        total_stock_value = sum(p.stock_value or 0 for p in portfolios)
-        total_crypto_value = sum(p.crypto_value or 0 for p in portfolios)
-        total_pnl = sum(p.total_pnl for p in portfolios)
-        total_initial = sum(p.initial_value for p in portfolios)
-        
-        # Calculate overall P&L percentage
-        total_pnl_percent = ((total_value - total_initial) / total_initial * 100) if total_initial > 0 else 0
-        
-        # Get total positions count
-        total_positions = sum(len(p.positions or {}) for p in portfolios)
-        
-        # Get breakdown by agent
+        # Initialize totals
+        total_cash = 0
+        total_stock_value = 0
+        total_crypto_value = 0
+        total_initial = 0
         agents_funds = []
+        
+        # Calculate real-time values for each portfolio
         for portfolio in portfolios:
+            positions = portfolio.positions or {}
+            stock_value = 0
+            crypto_value = 0
+            
+            # Calculate current value of each position
+            for symbol, pos in positions.items():
+                quantity = pos.get("quantity", 0)
+                asset_type = pos.get("asset_type", "STOCK")
+                
+                try:
+                    if asset_type == "CRYPTO":
+                        # Get current crypto price from Binance
+                        price_data = await binance.get_crypto_price(symbol)
+                        current_price = price_data.get("price") if price_data else pos.get("avg_price", 0)
+                        crypto_value += current_price * quantity
+                    else:
+                        # Get current stock price from Alpaca
+                        price_data = await collector.get_current_price(symbol)
+                        current_price = price_data.get("price", pos.get("avg_price", 0))
+                        stock_value += current_price * quantity
+                except Exception as e:
+                    logger.warning("price_fetch_error", symbol=symbol, error=str(e))
+                    # Fallback to average price if current price unavailable
+                    avg_price = pos.get("avg_price", 0)
+                    if asset_type == "CRYPTO":
+                        crypto_value += avg_price * quantity
+                    else:
+                        stock_value += avg_price * quantity
+            
+            # Calculate portfolio metrics
+            total_value = portfolio.cash + stock_value + crypto_value
+            total_pnl = total_value - portfolio.initial_value
+            total_pnl_percent = ((total_value - portfolio.initial_value) / portfolio.initial_value * 100) if portfolio.initial_value > 0 else 0
+            
+            # Update portfolio in database with real-time values
+            portfolio.stock_value = stock_value
+            portfolio.crypto_value = crypto_value
+            portfolio.total_value = total_value
+            portfolio.total_pnl = total_pnl
+            portfolio.total_pnl_percent = total_pnl_percent
+            
+            # Add to totals
+            total_cash += portfolio.cash
+            total_stock_value += stock_value
+            total_crypto_value += crypto_value
+            total_initial += portfolio.initial_value
+            
+            # Add to response
             agents_funds.append({
                 "agent_name": portfolio.agent_name,
                 "cash": portfolio.cash,
-                "total_value": portfolio.total_value,
-                "stock_value": portfolio.stock_value or 0,
-                "crypto_value": portfolio.crypto_value or 0,
-                "pnl": portfolio.total_pnl,
-                "pnl_percent": portfolio.total_pnl_percent,
-                "positions_count": len(portfolio.positions or {}),
+                "total_value": total_value,
+                "stock_value": stock_value,
+                "crypto_value": crypto_value,
+                "pnl": total_pnl,
+                "pnl_percent": total_pnl_percent,
+                "positions_count": len(positions),
             })
+        
+        # Commit updated portfolio values
+        db.commit()
+        
+        # Calculate overall metrics
+        total_value = total_cash + total_stock_value + total_crypto_value
+        total_pnl = total_value - total_initial
+        total_pnl_percent = ((total_value - total_initial) / total_initial * 100) if total_initial > 0 else 0
+        total_positions = sum(len(p.positions or {}) for p in portfolios)
         
         return {
             "timestamp": datetime.utcnow().isoformat(),
