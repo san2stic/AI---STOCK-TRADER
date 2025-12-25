@@ -1021,7 +1021,8 @@ Reasoning: [detailed explanation]
         lines.append(f"Total votes: {vote_details['total_votes']}")
         lines.append(f"Vote breakdown: {vote_details['vote_counts']}")
         lines.append(f"Winning action: {vote_details['winning_action']}")
-        lines.append(f"Consensus: {vote_details['consensus_percent']:.1f}%")
+        consensus = vote_details.get('consensus_percent') or 0.0
+        lines.append(f"Consensus: {consensus:.1f}%")
         return "\n".join(lines)
     
     async def _update_session_status(
