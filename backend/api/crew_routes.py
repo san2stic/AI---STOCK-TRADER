@@ -10,7 +10,7 @@ from database import get_db
 from config import get_settings
 
 logger = structlog.get_logger()
-router = APIRouter(prefix="/crew", tags=["crew"])
+router = APIRouter(prefix="/api/crew", tags=["crew"])
 
 
 @router.get("/sessions")

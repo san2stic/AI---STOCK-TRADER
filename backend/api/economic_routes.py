@@ -9,7 +9,7 @@ import structlog
 from services.economic_calendar import get_economic_calendar, EventImpact
 
 logger = structlog.get_logger()
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["economic"])
 
 
 @router.get("/economic-events")

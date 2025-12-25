@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
         // So we should replace /api/ with /
 
         const targetUrl = new URL(
-            request.nextUrl.pathname.replace(/^\/api/, ''),
+            request.nextUrl.pathname,
             apiUrl
         )
 
