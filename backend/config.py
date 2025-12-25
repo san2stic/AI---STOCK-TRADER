@@ -251,7 +251,7 @@ AGENT_CONFIGS = {
     },
     "deepseek": {
         "name": "DeepSeek Nerveux",
-        "model": "deepseek/deepseek-v3.2",
+        "model": "deepseek/deepseek-chat",
         "personality": "Reactive momentum chaser",
         "strategy": "Sector Rotation",
         "risk_tolerance": "Medium-High",

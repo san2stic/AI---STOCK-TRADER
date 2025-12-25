@@ -843,42 +843,76 @@ class TradingTools:
         }
 
     async def search_web(self, query: str, max_results: int = 10) -> Dict[str, Any]:
-        """Search the web using SerpAPI (Google) and store results."""
-        try:
-            from serpapi import GoogleSearch
-            from models.database import WebSearchResult
-            
-            # Check for API key
-            if not settings.serpapi_api_key:
-                return {"error": "SerpAPI key not configured in .env (SERPAPI_API_KEY)"}
+        """Search the web using SerpAPI (Google) with fallback to DuckDuckGo, and store results."""
+        from models.database import WebSearchResult
+        formatted_results = []
+        source_used = "unknown"
+
+        # 1. Try SerpAPI first if configured
+        if settings.serpapi_api_key:
+            try:
+                from serpapi import GoogleSearch
+                source_used = "serpapi"
                 
-            params = {
-                "q": query,
-                "api_key": settings.serpapi_api_key,
-                "num": max_results
-            }
-            
-            # Execute search
-            # Note: GoogleSearch is synchronous, might block event loop briefly
-            # For heavy usage, run in executor
-            search = GoogleSearch(params)
-            results_dict = search.get_dict()
-            
-            organic_results = results_dict.get("organic_results", [])
-            
-            # Format results
-            formatted_results = []
-            for r in organic_results:
-                formatted_results.append({
-                    "title": r.get("title"),
-                    "link": r.get("link"),
-                    "snippet": r.get("snippet"),
-                    "date": r.get("date"),
-                    "source": r.get("source"),
-                    "position": r.get("position")
-                })
-            
-            # Store in DB (with error handling)
+                params = {
+                    "q": query,
+                    "api_key": settings.serpapi_api_key,
+                    "num": max_results
+                }
+                
+                # Execute search (GoogleSearch is synchronous)
+                search = GoogleSearch(params)
+                results_dict = search.get_dict()
+                
+                organic_results = results_dict.get("organic_results", [])
+                
+                for r in organic_results:
+                    formatted_results.append({
+                        "title": r.get("title"),
+                        "link": r.get("link"),
+                        "snippet": r.get("snippet"),
+                        "date": r.get("date"),
+                        "source": r.get("source"),
+                        "position": r.get("position")
+                    })
+                    
+            except Exception as e:
+                logger.warning("serpapi_search_failed", query=query, error=str(e))
+                # Fallthrough to DuckDuckGo
+                pass
+        
+        # 2. Fallback to DuckDuckGo if SerpAPI failed or not configured
+        if not formatted_results:
+            try:
+                from duckduckgo_search import DDGS
+                source_used = "duckduckgo"
+                
+                # specific exception catching for DDGs
+                try:
+                    # DDGS is synchronous but fast
+                    with DDGS() as ddgs:
+                        # text() returns an iterator
+                        ddg_results = list(ddgs.text(query, max_results=max_results))
+                        
+                        for i, r in enumerate(ddg_results):
+                            formatted_results.append({
+                                "title": r.get("title"),
+                                "link": r.get("href"),
+                                "snippet": r.get("body"),
+                                "date": None, # DDG sometimes provides this but inconsistent
+                                "source": "DuckDuckGo",
+                                "position": i + 1
+                            })
+                            
+                except Exception as e:
+                     logger.error("duckduckgo_search_failed", query=query, error=str(e))
+                     return {"error": f"All search methods failed. Last error: {str(e)}"}
+                     
+            except ImportError:
+                 return {"error": "duckduckgo_search not installed and SerpAPI failed/not configured."}
+
+        # 3. Store in DB (if we have results)
+        if formatted_results:
             try:
                 with get_db() as db:
                     search_record = WebSearchResult(
@@ -889,16 +923,13 @@ class TradingTools:
                     db.commit()
             except Exception as e:
                 logger.error("db_save_search_error", query=query, error=str(e))
-                
-            return {
-                "query": query,
-                "count": len(formatted_results),
-                "results": formatted_results,
-            }
             
-        except Exception as e:
-            logger.error("web_search_failed", query=query, error=str(e))
-            return {"error": f"Search failed: {str(e)}"}
+        return {
+            "query": query,
+            "count": len(formatted_results),
+            "source": source_used,
+            "results": formatted_results,
+        }
     
     async def buy_stock(self, symbol: str, quantity: int) -> Dict[str, Any]:
         """Execute buy order."""

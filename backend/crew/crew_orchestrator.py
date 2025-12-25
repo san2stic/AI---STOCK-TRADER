@@ -704,6 +704,15 @@ Be constructive and specific. Your critique helps improve overall decision quali
                 
                 content = self.openrouter.get_message_content(response)
                 
+                if not content:
+                    logger.warning(
+                        "cross_critique_empty_content", 
+                        agent=agent.name,
+                        raw_response_preview=str(response)[:100]
+                    )
+                    # Skip sending empty message
+                    continue
+
                 # Send critique message
                 communication.send_message(
                     agent_name=f"{agent.name} (Critique)",
