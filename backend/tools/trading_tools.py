@@ -3442,14 +3442,14 @@ class TradingTools:
         """Get comprehensive multi-factor decision score for a symbol."""
         from services.decision_engine import MultiFactorScorer
         from services.data_collector import get_data_collector
-        from services.advanced_indicators import get_advanced_indicators_service
+        from services.advanced_indicators import get_advanced_indicators
         
         symbol = symbol.upper()
         
         try:
             # Collect all necessary data
             collector = get_data_collector()
-            indicators_service = get_advanced_indicators_service()
+            indicators_service = get_advanced_indicators()
             
             # Get price data
             price_data = await collector.get_current_price(symbol)
@@ -3499,14 +3499,14 @@ class TradingTools:
         """Analyze confluence of trading signals."""
         from services.decision_engine import SignalConfluenceDetector
         from services.data_collector import get_data_collector
-        from services.advanced_indicators import get_advanced_indicators_service
+        from services.advanced_indicators import get_advanced_indicators
         
         symbol = symbol.upper()
         
         try:
             # Collect data
             collector = get_data_collector()
-            indicators_service = get_advanced_indicators_service()
+            indicators_service = get_advanced_indicators()
             
             price_data = await collector.get_current_price(symbol)
             indicators = await indicators_service.calculate_all_indicators(symbol)
@@ -3637,10 +3637,10 @@ class TradingTools:
         """Helper to get market conditions for Bayesian analysis."""
         try:
             from services.data_collector import get_data_collector
-            from services.advanced_indicators import get_advanced_indicators_service
+            from services.advanced_indicators import get_advanced_indicators
             
             collector = get_data_collector()
-            indicators_service = get_advanced_indicators_service()
+            indicators_service = get_advanced_indicators()
             
             price_data = await collector.get_current_price(symbol)
             indicators = await indicators_service.calculate_all_indicators(symbol)

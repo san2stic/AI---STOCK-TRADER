@@ -25,18 +25,32 @@ class DataCollector:
         
     async def get_current_price(self, symbol: str) -> Dict[str, Any]:
         """
-        Get current stock price.
-        Uses Alpaca API if available, falls back to mock data.
+        Get current price for stock or crypto.
+        Routes crypto symbols to Binance, stocks to Alpaca.
         """
-        # Try Alpaca first
-        try:
-            from services.alpaca_connector import get_alpaca_connector
-            alpaca = get_alpaca_connector()
-            price_data = await alpaca.get_stock_price(symbol)
-            if price_data:
-                return price_data
-        except Exception as e:
-            logger.warning("alpaca_price_fetch_failed", symbol=symbol, error=str(e))
+        # Detect crypto vs stock
+        is_crypto = symbol.upper().endswith(('USDT', 'BUSD', 'USDC', 'BTC', 'ETH', 'BNB'))
+        
+        if is_crypto:
+            # Try Binance for crypto
+            try:
+                from services.binance_connector import get_binance_connector
+                binance = get_binance_connector()
+                price_data = await binance.get_crypto_price(symbol)
+                if price_data:
+                    return price_data
+            except Exception as e:
+                logger.warning("binance_price_fetch_failed", symbol=symbol, error=str(e))
+        else:
+            # Try Alpaca for stocks
+            try:
+                from services.alpaca_connector import get_alpaca_connector
+                alpaca = get_alpaca_connector()
+                price_data = await alpaca.get_stock_price(symbol)
+                if price_data:
+                    return price_data
+            except Exception as e:
+                logger.warning("alpaca_price_fetch_failed", symbol=symbol, error=str(e))
         
         # Fallback to mock data
         return await self._get_mock_price(symbol)
@@ -90,7 +104,7 @@ class DataCollector:
         Get historical OHLCV data.
         
         Args:
-            symbol: Stock symbol
+            symbol: Stock/crypto symbol
             period: "1d", "1w", "1m", "3m"
         """
         # Check cache
@@ -103,18 +117,41 @@ class DataCollector:
         days_map = {"1d": 1, "1w": 7, "1m": 30, "3m": 90}
         days = days_map.get(period, 30)
         
-        # Try to get from Alpaca first, otherwise generate mock data
-        try:
-            from services.alpaca_connector import get_alpaca_connector
-            alpaca = get_alpaca_connector()
-            data = await alpaca.get_historical_data(symbol, period)
-            if data:
-                await self._save_to_cache(cache_key, data, hours=1)
-                return data
-        except Exception as e:
-            logger.warning("alpaca_historical_fetch_failed", symbol=symbol, error=str(e))
+        # Detect if this is a crypto symbol (ends with USDT, BUSD, USDC, etc.)
+        is_crypto = symbol.upper().endswith(('USDT', 'BUSD', 'USDC', 'BTC', 'ETH', 'BNB'))
         
-        # Fallback to mock data
+        data = None
+        
+        if is_crypto:
+            # Use Binance for cryptocurrency historical data
+            try:
+                from services.binance_connector import get_binance_connector
+                binance = get_binance_connector()
+                data = await binance.get_historical_klines(symbol, period)
+                if data:
+                    logger.info(
+                        "binance_historical_data_success",
+                        symbol=symbol,
+                        period=period,
+                        bars=len(data)
+                    )
+                    await self._save_to_cache(cache_key, data, hours=1)
+                    return data
+            except Exception as e:
+                logger.warning("binance_historical_fetch_failed", symbol=symbol, error=str(e))
+        else:
+            # Use Alpaca for stock historical data
+            try:
+                from services.alpaca_connector import get_alpaca_connector
+                alpaca = get_alpaca_connector()
+                data = await alpaca.get_historical_data(symbol, period)
+                if data:
+                    await self._save_to_cache(cache_key, data, hours=1)
+                    return data
+            except Exception as e:
+                logger.warning("alpaca_historical_fetch_failed", symbol=symbol, error=str(e))
+        
+        # Fallback to mock data if both sources fail
         data = self._generate_mock_historical(symbol, days)
         
         # Cache result

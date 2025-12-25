@@ -481,6 +481,86 @@ class BinanceConnector:
             logger.error("binance_funding_rate_error", symbol=symbol, error=str(e))
             return {"error": str(e)}
     
+    async def get_historical_klines(
+        self,
+        symbol: str,
+        period: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Get historical candlestick (klines) data from Binance.
+        
+        Args:
+            symbol: Crypto pair (e.g., "BTCUSDT")
+            period: "1d", "1w", "1m", "3m"
+        
+        Returns:
+            List of OHLCV data dictionaries
+        """
+        try:
+            if not self.connected:
+                await self.connect()
+            
+            from binance.enums import KLINE_INTERVAL_1DAY
+            from datetime import datetime, timedelta
+            
+            # Map period to Binance interval and calculate lookback
+            interval_map = {
+                "1d": (KLINE_INTERVAL_1DAY, 1),
+                "1w": (KLINE_INTERVAL_1DAY, 7),
+                "1m": (KLINE_INTERVAL_1DAY, 30),
+                "3m": (KLINE_INTERVAL_1DAY, 90),
+            }
+            
+            if period not in interval_map:
+                logger.warning("binance_invalid_period", period=period)
+                period = "3m"  # Default
+            
+            interval, days = interval_map[period]
+            
+            # Calculate start time
+            end_time = datetime.now()
+            start_time = end_time - timedelta(days=days)
+            
+            # Fetch klines (candlestick data)
+            klines = self.data_client.get_historical_klines(
+                symbol,
+                interval,
+                start_time.strftime("%Y-%m-%d"),
+                end_time.strftime("%Y-%m-%d")
+            )
+            
+            # Convert to standard OHLCV format
+            historical_data = []
+            for kline in klines:
+                historical_data.append({
+                    "timestamp": kline[0],
+                    "date": datetime.fromtimestamp(kline[0] / 1000).strftime("%Y-%m-%d"),
+                    "open": float(kline[1]),
+                    "high": float(kline[2]),
+                    "low": float(kline[3]),
+                    "close": float(kline[4]),
+                    "volume": float(kline[5]),
+                    # Additional fields
+                    "o": float(kline[1]),  # Alternative naming
+                    "h": float(kline[2]),
+                    "l": float(kline[3]),
+                    "c": float(kline[4]),
+                    "v": float(kline[5]),
+                })
+            
+            logger.info(
+                "binance_historical_data_fetched",
+                symbol=symbol,
+                period=period,
+                bars_count=len(historical_data)
+            )
+            
+            return historical_data
+            
+        except Exception as e:
+            logger.error("binance_historical_data_error", symbol=symbol, period=period, error=str(e))
+            return []
+    
     async def get_order_book_analysis(self, symbol: str, depth: int = 20) -> Dict[str, Any]:
         """
         Analyze order book depth for support/resistance levels.
