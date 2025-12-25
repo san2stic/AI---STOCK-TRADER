@@ -924,6 +924,298 @@ TRADING_TOOLS = [
             },
         },
     },
+    # ========== NEW PHASE 1: ADVANCED DECISION ENGINE ==========
+    {
+        "type": "function",
+        "function": {
+            "name": "get_decision_score",
+            "description": "Get comprehensive multi-factor decision score (0-100) combining technical indicators, momentum, sentiment, risk/reward, and signal confluence. Use this before making any trading decision. Scores 75+: Strong Buy, 60-75: Buy, 40-60: Neutral, 25-40: Sell, <25: Strong Sell.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Stock or crypto symbol to analyze",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_signal_confluence",
+            "description": "Analyze confluence of trading signals - when multiple indicators agree, reliability increases. Returns confluence score, direction (bullish/bearish/neutral), agreeing vs conflicting indicators, and reliability rating.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to analyze",
+                    },
+                },
+                "required": ["symbol"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_success_probability",
+            "description": "Calculate Bayesian probability of trade success based on your historical performance in similar conditions. Returns success probability, confidence level, and recommendation. High probability + high confidence = strong edge.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to trade",
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": ["buy", "sell"],
+                        "description": "Proposed action",
+                    },
+                },
+                "required": ["symbol", "action"],
+            },
+        },
+    },
+    # ========== NEW PHASE 7: PSYCHOLOGICAL EDGE ==========
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_emotional_trade",
+            "description": "Detect if a proposed trade is emotionally motivated (FOMO/FUD/REVENGE). CRITICAL: Use this BEFORE every trade to avoid emotional mistakes. Returns warning and blocks irrational trades.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol you're considering trading",
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": ["buy", "sell"],
+                        "description": "Action you're considering",
+                    },
+                    "reasoning": {
+                        "type": "string",
+                        "description": "Your reasoning for the trade",
+                    },
+                },
+                "required": ["symbol", "action"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_trading_cooldown",
+            "description": "Check if you're in a mandatory cooldown period after losses. After 2+ consecutive losses, cooldowns are enforced to prevent revenge trading. ALWAYS check this before trading.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_drawdown_controls",
+            "description": "Get current drawdown-based controls. Returns position size multiplier (0.0-1.0) and pause status. >10% drawdown = reduced sizing, >20% = trading paused.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_circuit_breaker",
+            "description": "Check if circuit breaker is active from loss streak. 3+ consecutive losses = 1hr pause, 5+ losses = 24hr pause. Essential safety mechanism.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    # ========== NEW PHASE 2: PATTERN LEARNING & MEMORY ==========
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_trade_patterns",
+            "description": "Analyze your trade history to discover winning and losing patterns. Returns clusters of similar trades with win rates and P&L. Use this to identify what setups work best for you.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "lookback_days": {
+                        "type": "integer",
+                        "description": "Days of history to analyze",
+                        "default": 90,
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "extract_winning_patterns",
+            "description": "Extract 'golden rules' from your winning trades. Returns common characteristics, preferred symbols, and actionable rules. Learn what makes your winners successful.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_recurring_errors",
+            "description": "Detect recurring mistakes in your losing trades. Identifies error patterns like FOMO, panic selling, revenge trading. Essential for avoiding repeated mistakes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "lookback_days": {
+                        "type": "integer",
+                        "description": "Days to analyze for errors",
+                        "default": 60,
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_avoidance_rules",
+            "description": "Get specific avoidance rules generated from your historical errors. Returns rules like 'AVOID buying when RSI > 75' based on YOUR specific losing patterns.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_strategy_adjustments",
+            "description": "Get suggested strategy parameter adjustments based on recent performance. Returns recommendations like 'tighten entry criteria' or 'let winners run longer'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "lookback_days": {
+                        "type": "integer",
+                        "description": "Days to analyze",
+                        "default": 30,
+                    },
+                },
+            },
+        },
+    },
+    # ========== NEW PHASE 3: ADVANCED RISK MANAGEMENT ==========
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate_kelly_position_size",
+            "description": "Calculate optimal position size using Kelly Criterion based on your historical win rate and win/loss ratio. Returns the mathematically optimal fraction of portfolio to risk. Use this for scientific position sizing.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Optional symbol to filter historical performance for",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate_sharpe_ratio",
+            "description": "Calculate your Sharpe ratio (risk-adjusted returns). Sharpe > 2.0 = excellent, 1.0-2.0 = good, 0.5-1.0 = moderate, <0.5 = poor. Returns recommendation on whether to increase, maintain, or decrease position sizes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "lookback_days": {
+                        "type": "integer",
+                        "description": "Number of days to analyze",
+                        "default": 30,
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_adaptive_position_size",
+            "description": "Get optimal position size combining Kelly Criterion, Sharpe ratio, and market volatility. This is the BEST tool for position sizing - it adapts to your performance and market conditions automatically.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "Symbol to trade",
+                    },
+                    "current_price": {
+                        "type": "number",
+                        "description": "Current price of the asset",
+                    },
+                    "portfolio_value": {
+                        "type": "number",
+                        "description": "Total portfolio value",
+                    },
+                    "atr_percent": {
+                        "type": "number",
+                        "description": "ATR as percentage of price (optional)",
+                    },
+                    "market_volatility": {
+                        "type": "string",
+                        "enum": ["LOW", "NORMAL", "HIGH", "EXTREME"],
+                        "description": "Current market volatility level",
+                        "default": "NORMAL",
+                    },
+                },
+                "required": ["symbol", "current_price", "portfolio_value"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate_dynamic_stop_loss",
+            "description": "Calculate volatility-based stop-loss using ATR. Returns stop price, risk per share, and enables trailing stop logic. Essential for risk management - ALWAYS calculate stop-loss BEFORE entering a trade.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "entry_price": {
+                        "type": "number",
+                        "description": "Your entry price",
+                    },
+                    "atr": {
+                        "type": "number",
+                        "description": "Average True Range",
+                    },
+                    "direction": {
+                        "type": "string",
+                        "enum": ["long", "short"],
+                        "description": "Trade direction",
+                        "default": "long",
+                    },
+                    "atr_multiplier": {
+                        "type": "number",
+                        "description": "ATR multiplier for stop distance (default 2.0)",
+                        "default": 2.0,
+                    },
+                },
+                "required": ["entry_price", "atr"],
+            },
+        },
+    },
 ]
 
 
@@ -1003,6 +1295,26 @@ class TradingTools:
             "compare_scenarios": self.compare_scenarios,
             "get_risk_reward_analysis": self.get_risk_reward_analysis,
             "detect_market_anomaly": self.detect_market_anomaly,
+            # NEW PHASE 1: ADVANCED DECISION ENGINE
+            "get_decision_score": self.get_decision_score,
+            "get_signal_confluence": self.get_signal_confluence,
+            "get_success_probability": self.get_success_probability,
+            # NEW PHASE 7: PSYCHOLOGICAL EDGE
+            "detect_emotional_trade": self.detect_emotional_trade,
+            "check_trading_cooldown": self.check_trading_cooldown,
+            "check_drawdown_controls": self.check_drawdown_controls,
+            "check_circuit_breaker": self.check_circuit_breaker,
+            # NEW PHASE 2: PATTERN LEARNING & MEMORY
+            "analyze_trade_patterns": self.analyze_trade_patterns,
+            "extract_winning_patterns": self.extract_winning_patterns,
+            "detect_recurring_errors": self.detect_recurring_errors,
+            "get_avoidance_rules": self.get_avoidance_rules,
+            "get_strategy_adjustments": self.get_strategy_adjustments,
+            # NEW PHASE 3: ADVANCED RISK MANAGEMENT
+            "calculate_kelly_position_size": self.calculate_kelly_position_size,
+            "calculate_sharpe_ratio": self.calculate_sharpe_ratio,
+            "get_adaptive_position_size": self.get_adaptive_position_size,
+            "calculate_dynamic_stop_loss": self.calculate_dynamic_stop_loss,
         }
         
         handler = handlers.get(tool_name)
@@ -3123,4 +3435,574 @@ class TradingTools:
         except Exception as e:
             logger.error("detect_market_anomaly_error", agent=self.agent_name, symbol=symbol, error=str(e))
             return {"error": str(e)}
+    
+    # ========== NEW PHASE 1: ADVANCED DECISION ENGINE METHODS ==========
+    
+    async def get_decision_score(self, symbol: str) -> Dict[str, Any]:
+        """Get comprehensive multi-factor decision score for a symbol."""
+        from services.decision_engine import MultiFactorScorer
+        from services.data_collector import get_data_collector
+        from services.advanced_indicators import get_advanced_indicators_service
+        
+        symbol = symbol.upper()
+        
+        try:
+            # Collect all necessary data
+            collector = get_data_collector()
+            indicators_service = get_advanced_indicators_service()
+            
+            # Get price data
+            price_data = await collector.get_current_price(symbol)
+            
+            # Get technical indicators
+            indicators = await indicators_service.calculate_all_indicators(symbol)
+            
+            # Get market context
+            market_context = await self._get_market_context_for_scoring(symbol)
+            
+            # Prepare technical data for scoring
+            technical_data = {
+                "current_price": price_data.get("price"),
+                "change_1d": price_data.get("change_percent", 0),
+                "change_7d": indicators.get("change_7d", 0),
+                "volume_ratio": indicators.get("volume_ratio", 1.0),
+                "rsi": indicators.get("rsi"),
+                "macd": indicators.get("macd", {}),
+                "bollinger": indicators.get("bollinger", {}),
+                "sma_50": indicators.get("sma_50"),
+                "sma_200": indicators.get("sma_200"),
+                "adx": indicators.get("adx"),
+                "atr_percent": indicators.get("atr_percent"),
+                "nearest_support": indicators.get("support_levels", [None])[0] if indicators.get("support_levels") else None,
+                "nearest_resistance": indicators.get("resistance_levels", [None])[0] if indicators.get("resistance_levels") else None,
+            }
+            
+            # Calculate decision score
+            scorer = MultiFactorScorer()
+            result = scorer.calculate_score(symbol, technical_data, market_context)
+            
+            logger.info(
+                "decision_score_calculated",
+                agent=self.agent_name,
+                symbol=symbol,
+                score=result.get("total_score"),
+                recommendation=result.get("recommendation"),
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error("get_decision_score_error", agent=self.agent_name, symbol=symbol, error=str(e))
+            return {"error": str(e), "total_score": 50, "recommendation": "NEUTRAL"}
+    
+    async def get_signal_confluence(self, symbol: str) -> Dict[str, Any]:
+        """Analyze confluence of trading signals."""
+        from services.decision_engine import SignalConfluenceDetector
+        from services.data_collector import get_data_collector
+        from services.advanced_indicators import get_advanced_indicators_service
+        
+        symbol = symbol.upper()
+        
+        try:
+            # Collect data
+            collector = get_data_collector()
+            indicators_service = get_advanced_indicators_service()
+            
+            price_data = await collector.get_current_price(symbol)
+            indicators = await indicators_service.calculate_all_indicators(symbol)
+            market_context = await self._get_market_context_for_scoring(symbol)
+            
+            # Prepare technical data
+            technical_data = {
+                "current_price": price_data.get("price"),
+                "change_1d": price_data.get("change_percent", 0),
+                "volume_ratio": indicators.get("volume_ratio", 1.0),
+                "rsi": indicators.get("rsi"),
+                "macd": indicators.get("macd", {}),
+                "bollinger": indicators.get("bollinger", {}),
+                "sma_50": indicators.get("sma_50"),
+                "sma_200": indicators.get("sma_200"),
+            }
+            
+            # Analyze confluence
+            detector = SignalConfluenceDetector()
+            result = detector.analyze_confluence(technical_data, market_context)
+            
+            logger.info(
+                "signal_confluence_analyzed",
+                agent=self.agent_name,
+                symbol=symbol,
+                confluence_score=result.get("confluence_score"),
+                direction=result.get("direction"),
+                reliability=result.get("reliability"),
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error("get_signal_confluence_error", agent=self.agent_name, symbol=symbol, error=str(e))
+            return {"error": str(e), "confluence_score": 0, "direction": "NEUTRAL", "reliability": "LOW"}
+    
+    async def get_success_probability(self, symbol: str, action: str) -> Dict[str, Any]:
+        """Calculate Bayesian probability of trade success."""
+        from services.decision_engine import BayesianDecisionTree
+        
+        symbol = symbol.upper()
+        action = action.lower()
+        
+        try:
+            # Get current market conditions
+            market_conditions = await self._get_market_conditions_for_bayesian(symbol)
+            
+            # Calculate success probability
+            bayesian_tree = BayesianDecisionTree()
+            result = bayesian_tree.calculate_success_probability(
+                self.agent_name,
+                symbol,
+                action,
+                market_conditions
+            )
+            
+            logger.info(
+                "success_probability_calculated",
+                agent=self.agent_name,
+                symbol=symbol,
+                action=action,
+                probability=result.get("success_probability"),
+                confidence=result.get("confidence_level"),
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error("get_success_probability_error", agent=self.agent_name, symbol=symbol, error=str(e))
+            return {
+                "error": str(e),
+                "success_probability": 0.5,
+                "confidence_level": "LOW",
+                "recommendation": "Insufficient data"
+            }
+    
+    async def _get_market_context_for_scoring(self, symbol: str) -> Dict[str, Any]:
+        """Helper to get market context for decision scoring."""
+        try:
+            # Try to get fear & greed index
+            fear_greed = None
+            try:
+                fg_result = await self.get_fear_greed_index()
+                fear_greed = fg_result.get("index")
+            except:
+                pass
+            
+            # Try to get market regime
+            market_regime = None
+            try:
+                regime_result = await self.get_market_regime(symbol="SPY")
+                market_regime = regime_result.get("regime")
+            except:
+                pass
+            
+            # Try to get news sentiment
+            news_sentiment = 0.0
+            try:
+                news_result = await self.search_news(symbol=symbol, days=3)
+                # Simple sentiment based on news count
+                news_count = len(news_result.get("results", {}).get(symbol, []))
+                if news_count > 5:
+                    news_sentiment = 0.2  # Positive if lots of news
+            except:
+                pass
+            
+            # Try to get economic impact
+            eco_impact = "LOW"
+            try:
+                eco_result = await self.get_economic_events(days_ahead=3, min_impact="HIGH")
+                events = eco_result.get("events", [])
+                if len(events) > 0:
+                    eco_impact = "HIGH"
+            except:
+                pass
+            
+            return {
+                "fear_greed_index": fear_greed,
+                "market_regime": market_regime,
+                "news_sentiment": news_sentiment,
+                "economic_impact": eco_impact,
+            }
+        except Exception as e:
+            logger.warning("market_context_collection_error", error=str(e))
+            return {}
+    
+    async def _get_market_conditions_for_bayesian(self, symbol: str) -> Dict[str, Any]:
+        """Helper to get market conditions for Bayesian analysis."""
+        try:
+            from services.data_collector import get_data_collector
+            from services.advanced_indicators import get_advanced_indicators_service
+            
+            collector = get_data_collector()
+            indicators_service = get_advanced_indicators_service()
+            
+            price_data = await collector.get_current_price(symbol)
+            indicators = await indicators_service.calculate_all_indicators(symbol)
+            
+            return {
+                "price": price_data.get("price"),
+                "rsi": indicators.get("rsi"),
+                "atr_percent": indicators.get("atr_percent"),
+                "volume_ratio": indicators.get("volume_ratio", 1.0),
+            }
+        except Exception as e:
+            logger.warning("market_conditions_collection_error", error=str(e))
+            return {}
+    
+    # ========== NEW PHASE 3: ADVANCED RISK MANAGEMENT METHODS ==========
+    
+    async def calculate_kelly_position_size(self, symbol: str = None) -> Dict[str, Any]:
+        """Calculate optimal position size using Kelly Criterion."""
+        from services.advanced_risk import calculate_kelly_position_size as kelly_calc
+        
+        try:
+            result = kelly_calc(self.agent_name, symbol)
+            
+            logger.info(
+                "kelly_position_calculated",
+                agent=self.agent_name,
+                symbol=symbol,
+                kelly_fraction=result.get("kelly_fraction"),
+                adjusted_fraction=result.get("adjusted_fraction"),
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error("calculate_kelly_position_size_error", agent=self.agent_name, error=str(e))
+            return {
+                "error": str(e),
+                "kelly_fraction": 0.02,
+                "adjusted_fraction": 0.02,
+                "recommendation": "Error calculating Kelly - using conservative 2% default"
+            }
+    
+    async def calculate_sharpe_ratio(self, lookback_days: int = 30) -> Dict[str, Any]:
+        """Calculate Sharpe ratio for risk-adjusted returns."""
+        from services.advanced_risk import calculate_sharpe_ratio as sharpe_calc
+        
+        try:
+            result = sharpe_calc(self.agent_name, lookback_days)
+            
+            logger.info(
+                "sharpe_ratio_calculated",
+                agent=self.agent_name,
+                sharpe_ratio=result.get("sharpe_ratio"),
+                recommendation=result.get("position_adjustment"),
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error("calculate_sharpe_ratio_error", agent=self.agent_name, error=str(e))
+            return {
+                "error": str(e),
+                "sharpe_ratio": 0,
+                "recommendation": "Error calculating Sharpe - maintain current approach",
+                "position_adjustment": "maintain"
+            }
+    
+    async def get_adaptive_position_size(
+        self,
+        symbol: str,
+        current_price: float,
+        portfolio_value: float,
+        atr_percent: float = None,
+        market_volatility: str = "NORMAL"
+    ) -> Dict[str, Any]:
+        """Get optimal position size combining Kelly, Sharpe, and volatility."""
+        from services.advanced_risk import get_adaptive_position_size as adaptive_calc
+        
+        symbol = symbol.upper()
+        
+        try:
+            result = adaptive_calc(
+                self.agent_name,
+                symbol,
+                current_price,
+                portfolio_value,
+                atr_percent,
+                market_volatility
+            )
+            
+            logger.info(
+                "adaptive_position_calculated",
+                agent=self.agent_name,
+                symbol=symbol,
+                suggested_quantity=result.get("suggested_quantity"),
+                percent_of_portfolio=result.get("percent_of_portfolio"),
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error("get_adaptive_position_size_error", agent=self.agent_name, symbol=symbol, error=str(e))
+            # Fallback to conservative sizing
+            conservative_fraction = 0.02
+            conservative_investment = portfolio_value * conservative_fraction
+            conservative_quantity = int(conservative_investment / current_price) if current_price > 0 else 0
+            
+            return {
+                "error": str(e),
+                "suggested_quantity": conservative_quantity,
+                "suggested_investment": conservative_investment,
+                "percent_of_portfolio": 2.0,
+                "reasoning": "Error in adaptive calculation - using conservative 2% default"
+            }
+    
+    async def calculate_dynamic_stop_loss(
+        self,
+        entry_price: float,
+        atr: float,
+        direction: str = "long",
+        atr_multiplier: float = 2.0
+    ) -> Dict[str, Any]:
+        """Calculate volatility-based stop-loss."""
+        from services.advanced_risk import calculate_dynamic_stop_loss as stop_calc
+        
+        try:
+            result = stop_calc(entry_price, atr, direction, atr_multiplier)
+            
+            logger.info(
+                "dynamic_stop_loss_calculated",
+                agent=self.agent_name,
+                entry_price=entry_price,
+                stop_loss_price=result.get("stop_loss_price"),
+                stop_distance_percent=result.get("stop_distance_percent"),
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error("calculate_dynamic_stop_loss_error", agent=self.agent_name, error=str(e))
+            # Fallback to simple 5% stop
+            fallback_stop = entry_price * 0.95 if direction == "long" else entry_price * 1.05
+            
+            return {
+                "error": str(e),
+                "stop_loss_price": round(fallback_stop, 2),
+                "stop_distance_percent": 5.0,
+                "recommendation": "Error in calculation - using simple 5% stop-loss"
+            }
 
+
+
+    # ========== NEW PHASE 2: PATTERN LEARNING & MEMORY METHODS ==========
+    
+    async def analyze_trade_patterns(self, lookback_days: int = 90) -> Dict[str, Any]:
+        """Analyze trade patterns to identify winning and losing setups."""
+        from services.pattern_learning import analyze_trade_patterns as analyze_patterns
+        
+        try:
+            result = analyze_patterns(self.agent_name, lookback_days)
+            logger.info("trade_patterns_analyzed", agent=self.agent_name, total_trades=result.get("total_trades"))
+            return result
+        except Exception as e:
+            logger.error("analyze_trade_patterns_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "winning_clusters": [], "losing_clusters": [], "insights": ["Error analyzing patterns"]}
+    
+    async def extract_winning_patterns(self) -> Dict[str, Any]:
+        """Extract golden rules from winning trades."""
+        from services.pattern_learning import extract_winning_patterns as extract_patterns
+        
+        try:
+            result = extract_patterns(self.agent_name)
+            logger.info("winning_patterns_extracted", agent=self.agent_name, golden_rules_count=len(result.get("golden_rules", [])))
+            return result
+        except Exception as e:
+            logger.error("extract_winning_patterns_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "golden_rules": [], "recommendations": ["Error extracting patterns"]}
+    
+    async def detect_recurring_errors(self, lookback_days: int = 60) -> Dict[str, Any]:
+        """Detect recurring error patterns in losing trades."""
+        from services.error_learning import detect_recurring_errors as detect_errors
+        
+        try:
+            result = detect_errors(self.agent_name, lookback_days)
+            logger.info("recurring_errors_detected", agent=self.agent_name, error_patterns_found=len(result.get("error_patterns", [])))
+            return result
+        except Exception as e:
+            logger.error("detect_recurring_errors_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "error_patterns": [], "message": "Error detecting patterns"}
+    
+    async def get_avoidance_rules(self) -> Dict[str, Any]:
+        """Get avoidance rules generated from historical errors."""
+        from services.error_learning import get_avoidance_rules as get_rules
+        
+        try:
+            result = get_rules(self.agent_name)
+            logger.info("avoidance_rules_retrieved", agent=self.agent_name, rules_count=len(result.get("avoidance_rules", [])))
+            return result
+        except Exception as e:
+            logger.error("get_avoidance_rules_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "avoidance_rules": [], "formatted_for_prompt": ""}
+    
+    async def get_strategy_adjustments(self, lookback_days: int = 30) -> Dict[str, Any]:
+        """Get suggested strategy parameter adjustments."""
+        from services.pattern_learning import get_strategy_adjustments as get_adjustments
+        
+        try:
+            result = get_adjustments(self.agent_name, lookback_days)
+            logger.info("strategy_adjustments_generated", agent=self.agent_name, adjustments_count=len(result.get("adjustments", [])))
+            return result
+        except Exception as e:
+            logger.error("get_strategy_adjustments_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "adjustments": [], "recommendations": ["Error generating adjustments"]}
+    
+    # ========== NEW PHASE 7: PSYCHOLOGICAL EDGE METHODS ==========
+    
+    async def detect_emotional_trade(self, symbol: str, action: str, reasoning: str = "") -> Dict[str, Any]:
+        """Detect if a proposed trade is emotionally motivated."""
+        from services.psychological_monitor import detect_emotional_trade as detect_emotion
+        
+        try:
+            result = detect_emotion(self.agent_name, symbol, action, reasoning)
+            logger.info("emotional_trade_check", agent=self.agent_name, symbol=symbol, is_emotional=result.get("is_emotional"), emotion_type=result.get("emotion_type"))
+            return result
+        except Exception as e:
+            logger.error("detect_emotional_trade_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "is_emotional": False, "should_block": False, "warning_message": "Error checking emotions"}
+    
+    async def check_trading_cooldown(self) -> Dict[str, Any]:
+        """Check if trading cooldown is active after losses."""
+        from services.psychological_monitor import check_trading_cooldown as check_cooldown
+        
+        try:
+            result = check_cooldown(self.agent_name)
+            logger.info("cooldown_check", agent=self.agent_name, cooldown_active=result.get("cooldown_active"))
+            return result
+        except Exception as e:
+            logger.error("check_trading_cooldown_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "cooldown_active": False, "minutes_remaining": 0}
+    
+    async def check_drawdown_controls(self) -> Dict[str, Any]:
+        """Get position size controls based on current drawdown."""
+        from services.psychological_monitor import check_drawdown_controls as check_dd
+        
+        try:
+            result = check_dd(self.agent_name)
+            logger.info("drawdown_check", agent=self.agent_name, control_level=result.get("control_level"), drawdown=result.get("current_drawdown_percent"))
+            return result
+        except Exception as e:
+            logger.error("check_drawdown_controls_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "position_size_multiplier": 1.0, "should_pause_trading": False}
+    
+    async def check_circuit_breaker(self) -> Dict[str, Any]:
+        """Check if circuit breaker is active due to loss streak."""
+        from services.psychological_monitor import check_circuit_breaker as check_breaker
+        
+        try:
+            result = check_breaker(self.agent_name)
+            logger.info("circuit_breaker_check", agent=self.agent_name, breaker_active=result.get("breaker_active"), consecutive_losses=result.get("consecutive_losses"))
+            return result
+        except Exception as e:
+            logger.error("check_circuit_breaker_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "breaker_active": False, "consecutive_losses": 0}
+    
+    # ========== NEW PHASE 6: CONTEXT AWARENESS METHODS ==========
+    
+    async def get_market_context(self) -> Dict[str, Any]:
+        """Get comprehensive market and portfolio context."""
+        from services.context_awareness import get_market_context as get_context
+        
+        try:
+            result = get_context(self.agent_name)
+            logger.info("market_context_retrieved", agent=self.agent_name, activity_level=result.get("market_summary", {}).get("activity_level"))
+            return result
+        except Exception as e:
+            logger.error("get_market_context_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "market_summary": {}, "recommendations": ["Error retrieving context"]}
+    
+    async def check_portfolio_correlation(self, new_symbol: str = None) -> Dict[str, Any]:
+        """Check portfolio correlation and diversification."""
+        from services.context_awareness import check_portfolio_correlation as check_corr
+        
+        try:
+            result = check_corr(self.agent_name, new_symbol)
+            logger.info("portfolio_correlation_checked", agent=self.agent_name, correlation_risk=result.get("correlation_risk"), diversification_score=result.get("diversification_score"))
+            return result
+        except Exception as e:
+            logger.error("check_portfolio_correlation_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "correlation_risk": "UNKNOWN", "diversification_score": 50}
+    
+    # ========== NEW PHASE 4: MARKET INTELLIGENCE METHODS ==========
+    
+    async def analyze_ict_concepts(self, symbol: str, price_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze ICT concepts (Order Blocks, FVG, Liquidity)."""
+        from services.market_intelligence import analyze_ict_concepts as analyze_ict
+        
+        try:
+            result = analyze_ict(symbol, price_data)
+            logger.info("ict_analysis", agent=self.agent_name, symbol=symbol, structure=result.get("market_structure"))
+            return result
+        except Exception as e:
+            logger.error("analyze_ict_concepts_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "market_structure": "UNKNOWN", "recommendation": "Error analyzing ICT"}
+    
+    async def analyze_wyckoff_phase(self, symbol: str, price_history: List[float]) -> Dict[str, Any]:
+        """Analyze Wyckoff accumulation/distribution phase."""
+        from services.market_intelligence import analyze_wyckoff_phase as analyze_wyckoff
+        
+        try:
+            result = analyze_wyckoff(symbol, price_history)
+            logger.info("wyckoff_analysis", agent=self.agent_name, symbol=symbol, phase=result.get("current_phase"), bias=result.get("bias"))
+            return result
+        except Exception as e:
+            logger.error("analyze_wyckoff_phase_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "current_phase": "UNKNOWN", "bias": "NEUTRAL"}
+    
+    async def detect_elliott_wave_pattern(self, symbol: str, price_history: List[float]) -> Dict[str, Any]:
+        """Detect Elliott Wave patterns."""
+        from services.market_intelligence import detect_elliott_wave_pattern as detect_wave
+        
+        try:
+            result = detect_wave(symbol, price_history)
+            logger.info("elliott_wave_detected", agent=self.agent_name, symbol=symbol, pattern=result.get("pattern_detected"))
+            return result
+        except Exception as e:
+            logger.error("detect_elliott_wave_pattern_error", agent=self.agent_name, error=str(e))
+            return {"error": str(e), "pattern_detected": "NONE", "recommendation": "Error detecting wave"}
+    
+    # ========== NEW PHASE 5: AGENT COORDINATION METHODS ==========
+    
+    async def get_agent_consensus(self, symbol: str, agent_decisions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Get consensus from multiple agent decisions."""
+        from services.agent_coordination import get_agent_consensus as get_consensus
+        
+        try:
+            result = get_consensus(symbol, agent_decisions)
+            logger.info("agent_consensus", symbol=symbol, consensus_action=result.get("consensus_action"), strength=result.get("consensus_strength"))
+            return result
+        except Exception as e:
+            logger.error("get_agent_consensus_error", error=str(e))
+            return {"error": str(e), "consensus_action": "HOLD", "consensus_strength": 0}
+    
+    async def resolve_agent_conflict(self, symbol: str, conflicting_decisions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Resolve conflicts between agents."""
+        from services.agent_coordination import resolve_agent_conflict as resolve_conflict
+        
+        try:
+            result = resolve_conflict(symbol, conflicting_decisions)
+            logger.info("conflict_resolved", symbol=symbol, resolution=result.get("resolution"), method=result.get("resolution_method"))
+            return result
+        except Exception as e:
+            logger.error("resolve_agent_conflict_error", error=str(e))
+            return {"error": str(e), "resolution": "HOLD", "resolution_method": "error_default"}
+    
+    async def filter_collaborative_signals(self, symbol: str, agent_signals: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Filter and combine signals from multiple agents."""
+        from services.agent_coordination import filter_collaborative_signals as filter_signals
+        
+        try:
+            result = filter_signals(symbol, agent_signals)
+            logger.info("signals_filtered", symbol=symbol, filtered_signal=result.get("filtered_signal"), quality=result.get("signal_quality"))
+            return result
+        except Exception as e:
+            logger.error("filter_collaborative_signals_error", error=str(e))
+            return {"error": str(e), "filtered_signal": "NEUTRAL", "signal_quality": "LOW"}

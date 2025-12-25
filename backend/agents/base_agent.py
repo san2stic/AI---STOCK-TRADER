@@ -666,9 +666,25 @@ QUESTION: Do the technicals CONFIRM my thesis?
 - Any chart patterns (double bottom, breakout)?
 - Multi-timeframe alignment?
 
-TOOLS: `get_technical_indicators`, `get_advanced_indicators`, `detect_chart_patterns`, `get_conviction_score`
+**🌟 NEW ADVANCED DECISION TOOLS (USE THESE FIRST):**
+1. `get_decision_score(symbol)` → Get comprehensive 0-100 score combining ALL indicators
+   - Scores 75+: STRONG_BUY | 60-75: BUY | 40-60: NEUTRAL | 25-40: SELL | <25: STRONG_SELL
+   - Includes breakdown of technical, momentum, sentiment, risk/reward scores
+   
+2. `get_signal_confluence(symbol)` → Analyze how many indicators agree
+   - HIGH reliability = most indicators aligned (trade with confidence)
+   - LOW reliability = indicators conflicting (reduce size or skip)
+   
+3. `get_success_probability(symbol, action)` → Bayesian probability based on YOUR history
+   - Shows your actual success rate in similar conditions
+   - High probability + high confidence = strong edge
+   - Low probability = this trade type hasn't worked for you before
+
+STANDARD TOOLS: `get_technical_indicators`, `get_advanced_indicators`, `detect_chart_patterns`, `get_conviction_score`
 
 ✅ If technicals conflict with thesis → ABORT or REDUCE SIZE.
+✅ If decision_score < 60 AND confluence is LOW → SKIP THE TRADE
+✅ If success_probability < 0.50 → Be cautious, this setup hasn't worked for you historically
 
 ╔══════════════════════════════════════════════════╗
 ║ STEP 5: RISK QUANTIFICATION ⚠️                  ║
@@ -679,7 +695,34 @@ QUESTION: What is the EXACT risk of this trade?
 - What is the correlation with existing holdings?
 - What is my Risk:Reward ratio? (Must be ≥ 2:1)
 
-TOOLS: `get_optimal_position_size`, `get_correlation_check`, `get_portfolio`
+** NEW ADVANCED RISK MANAGEMENT TOOLS (USE THESE):**
+1. `get_adaptive_position_size(symbol, current_price, portfolio_value, atr_percent, market_volatility)`
+   → **THE BEST position sizing tool** - combines Kelly + Sharpe + Volatility
+   - Automatically adapts to your performance
+   - Reduces size in high volatility, increases when you're performing well
+   - Returns exact quantity to buy
+
+2. `calculate_dynamic_stop_loss(entry_price, atr, direction, atr_multiplier=2.0)`
+   → Calculate volatility-based stop-loss using ATR
+   - Automatically adjusts to market volatility
+   - Includes trailing stop logic
+   - **ALWAYS use this before entering a trade**
+
+3. `calculate_kelly_position_size(symbol)` → Get mathematically optimal risk fraction
+   - Based on YOUR historical win rate and avg win/loss
+   - Conservative half-Kelly applied automatically
+
+4. `calculate_sharpe_ratio(lookback_days=30)` → Check your risk-adjusted performance
+   - Sharpe > 2.0 = increase sizes
+   - Sharpe < 0.5 = decrease sizes or stop trading
+
+STANDARD TOOLS: `get_optimal_position_size`, `get_correlation_check`, `get_portfolio`
+
+⚠️ CRITICAL RULES:
+- NEVER enter a trade without calculating stop-loss first
+- ALWAYS use get_adaptive_position_size for optimal sizing
+- If Kelly fraction < 0.03 → Edge is too small, skip the trade
+- If Sharpe < 0.5 → You're losing money on average, reassess strategy
 
 📐 FORMULA: Position Size = (Portfolio × Risk%) / Stop Distance
 
