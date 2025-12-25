@@ -81,8 +81,8 @@ class Settings(BaseSettings):
     market_strategy: str = "ANY"  # ANY or ALL
     
     # Trading configuration
-    trading_interval_minutes: int = Field(default=240, ge=5, le=480)  # 4h default, max 8h
-    position_analysis_interval_minutes: int = Field(default=60, ge=15, le=180)  # Position check every hour
+    trading_interval_minutes: int = Field(default=30, ge=5, le=480)  # 30m default to match .env
+    position_analysis_interval_minutes: int = Field(default=30, ge=15, le=180)  # Position check every 30m
     enable_extended_hours: bool = False
     enforce_market_hours: bool = True  # Set to False to ignore all market hours
     run_analysis_on_startup: bool = False  # Run market analysis when container starts (disabled by default for faster startup)
