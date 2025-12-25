@@ -571,13 +571,13 @@ Be brutally honest with yourself. Your future performance depends on this reflec
         market_context: Dict[str, Any], 
         portfolio: Dict[str, Any]
     ) -> str:
-        """Format market and portfolio context with Chain-of-Thought structure."""
+        """Format market and portfolio context with Asset-Specific Chain-of-Thought structure."""
         
         # Get contextual memory
         recent_decisions = self._get_recent_decisions(3)
         lessons_learned = self._get_lessons_learned(2)
         
-        # NEW: Get error patterns and strategy performance
+        # Get error patterns and strategy performance
         error_patterns = self._get_error_patterns(3)
         strategy_scores = self._get_strategy_scores()
         
@@ -623,6 +623,27 @@ Be brutally honest with yourself. Your future performance depends on this reflec
             for dec in recent_decisions:
                 memory_section += f"  - [{dec['date']}] Action: {dec['action'].upper()}\n"
         
+        # Determine Asset Class Context (Stock vs Crypto)
+        # We look at valid symbols in market_context or preferred symbols to guess intent
+        is_crypto_focus = any("USDT" in s or "BTC" in s or "ETH" in s for s in market_context.get('prices', {}).keys())
+        
+        if is_crypto_focus:
+            asset_specific_instructions = """
+**ASSET CLASS: CRYPTOCURRENCY (High Volatility)** 🚨
+- **24/7 Market**: Trends can shift overnight. No "market close" safety.
+- **Bitcoin Correlation**: ALWAYS check BTC price action. If BTC dumps, alts dump harder.
+- **Extreme Volatility**: +/- 10% is normal. Don't panic, but respect stops.
+- **Hype vs Utility**: Distinguish between memecoins (gamble) and infrastructure (investment).
+"""
+        else:
+            asset_specific_instructions = """
+**ASSET CLASS: STOCKS (Regulated Market)** 🏛️
+- **Market Hours**: Liquidity helps during 9:30-16:00 ET. Pre-market is deceptive.
+- **Earnings Season**: Check if earnings are approaching. Volatility spikes.
+- **Sector Rotation**: Money flows from Tech -> Defensives -> Cyclicals. Identify the flow.
+- **Macro Sensitivity**: Fed rates and economic data drive the bus.
+"""
+
         context = f"""
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 AGENT: {self.name}
@@ -650,43 +671,43 @@ Be brutally honest with yourself. Your future performance depends on this reflec
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🧠 CHAIN-OF-THOUGHT REASONING PROCESS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{asset_specific_instructions}
 
 You MUST follow this structured reasoning process:
 
 **STEP 1: SITUATIONAL AWARENESS** 🔍
-  └─ What is the overall market sentiment right now?
-  └─ Are there any high-impact news or events affecting my focus sectors?
-  └─ Use: get_market_overview, get_fear_greed_index, get_economic_events
+  └─ What is the overall market sentiment right now? (Fear/Greed?)
+  └─ Are there any high-impact news or events?
+  └─ Use: `get_market_overview`, `get_fear_greed_index`
 
 **STEP 2: OPPORTUNITY SCANNING** 🎯
   └─ What opportunities exist in my preferred sectors?
   └─ Check my WATCHLIST for setups I'm tracking.
-  └─ Which stocks/crypto show interesting technical setups?
-  └─ Use: get_available_stocks, compare_stocks, get_advanced_indicators, manage_watchlist
+  └─ **Anti-Hallucination**: If you don't know a price, you MUST use `get_price` or `search_news`.
+  └─ Use: `get_available_stocks`, `manage_watchlist`
 
 **STEP 3: DEEP ANALYSIS** 📊
-  └─ For top 2-3 candidates, perform detailed technical analysis
-  └─ Check conviction score and multiple timeframe alignment
-  └─ Use: get_technical_indicators, get_market_sentiment, get_conviction_score
+  └─ For top candidates, perform detailed technical analysis.
+  └─ **Confirmation**: Do Volume, RSI, and Trend align?
+  └─ Use: `get_technical_indicators`, `get_market_sentiment`, `get_conviction_score`
 
 **STEP 4: RISK ASSESSMENT** ⚠️
-  └─ What is my current portfolio exposure?
-  └─ Am I adding correlated risk to existing positions?
-  └─ What is the optimal position size based on volatility?
-  └─ Use: get_portfolio, get_correlation_check, get_optimal_position_size
+  └─ **Capital Preservation**: Will this trade expose me to too much risk?
+  └─ Position Sizing: Use volatility (ATR) to size the bet.
+  └─ Use: `get_portfolio`, `get_correlation_check`, `get_optimal_position_size`
 
 **STEP 5: DECISION & ACTION** ✅
   └─ Based on ALL above analysis, what is the highest-conviction action?
-  └─ Clearly state: ACTION, SYMBOL, QUANTITY, KEY REASONING
-  └─ If no clear opportunity, HOLD is a valid decision
-  └─ Use: buy_stock/sell_stock OR buy_crypto/sell_crypto
+  └─ Clearly state: ACTION, SYMBOL, QUANTITY, KEY REASONING.
+  └─ **Emotion Check**: Are you chasing? Are you panic selling? Be rational.
+  └─ Use: `buy_stock` / `sell_stock` (or crypto equivalents).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚡ IMPORTANT REMINDERS:
-- Apply lessons from your past experience (see above)
-- Your personality: {self.personality}
-- Preferred symbols: {self.config.get('preferred_symbols', [])}
-- Do NOT rush - thorough analysis beats quick decisions
+- Apply lessons from your past experience (see above).
+- **Personality**: {self.personality}
+- Do NOT rush - thorough analysis beats quick decisions.
+- If a stock is up >20% today, treat it with extreme caution (FOMO trap).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Now, begin your Chain-of-Thought analysis:
