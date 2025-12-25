@@ -9,10 +9,10 @@ import structlog
 from services.economic_calendar import get_economic_calendar, EventImpact
 
 logger = structlog.get_logger()
-router = APIRouter(prefix="/api", tags=["economic"])
+router = APIRouter(prefix="/api/economic", tags=["economic"])
 
 
-@router.get("/economic-events")
+@router.get("/events")
 async def get_economic_events(
     days_ahead: int = Query(7, ge=1, le=30, description="Number of days ahead to fetch"),
     min_impact: str = Query("MEDIUM", regex="^(HIGH|MEDIUM|LOW)$", description="Minimum impact level")
@@ -64,7 +64,7 @@ async def get_economic_events(
         raise HTTPException(status_code=500, detail="Failed to fetch economic events")
 
 
-@router.post("/economic-events/refresh")
+@router.post("/events/refresh")
 async def refresh_economic_events(
     days_ahead: int = Query(7, ge=1, le=30, description="Number of days ahead to refresh"),
     force: bool = Query(False, description="Force refresh even if data is fresh")
@@ -134,7 +134,7 @@ async def refresh_economic_events(
         raise HTTPException(status_code=500, detail=f"Failed to refresh calendar: {str(e)}")
 
 
-@router.get("/economic-events/upcoming-high-impact")
+@router.get("/events/upcoming-high-impact")
 async def get_upcoming_high_impact() -> Dict:
     """
     Get only upcoming high-impact events (next 3 days).
@@ -167,7 +167,7 @@ async def get_upcoming_high_impact() -> Dict:
         raise HTTPException(status_code=500, detail="Failed to fetch high-impact events")
 
 
-@router.get("/economic-events/analysis")
+@router.get("/events/analysis")
 async def get_economic_analysis(
     days_ahead: int = Query(7, ge=1, le=30, description="Number of days ahead to analyze"),
     min_impact: str = Query("MEDIUM", regex="^(HIGH|MEDIUM|LOW)$", description="Minimum impact level"),
@@ -217,7 +217,7 @@ async def get_economic_analysis(
         raise HTTPException(status_code=500, detail=f"Failed to analyze events: {str(e)}")
 
 
-@router.post("/economic-events/analysis/refresh")
+@router.post("/events/analysis/refresh")
 async def refresh_economic_analysis(
     days_ahead: int = Query(7, ge=1, le=30, description="Number of days ahead to analyze")
 ) -> Dict:
@@ -256,7 +256,7 @@ async def refresh_economic_analysis(
         raise HTTPException(status_code=500, detail=f"Failed to refresh analysis: {str(e)}")
 
 
-@router.get("/economic-events/summary")
+@router.get("/events/summary")
 async def get_high_impact_summary() -> Dict:
     """
     Get quick summary of high-impact events for dashboard.
