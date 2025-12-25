@@ -1801,6 +1801,94 @@ class TradingTools:
         
         return filtered
     
+    async def get_economic_calendar_analysis(
+        self,
+        days_ahead: int = 7
+    ) -> Dict[str, Any]:
+        """
+        Get LLM-powered analysis of upcoming economic events.
+        
+        Args:
+            days_ahead: Number of days to analyze ahead
+            
+        Returns:
+            Dict containing analysis, market outlook, volatility assessment,
+            and trading recommendations
+        """
+        try:
+            from services.economic_calendar_analyzer import get_analyzer
+            from services.economic_calendar import EventImpact
+            
+            analyzer = get_analyzer()
+            
+            # Get comprehensive analysis
+            analysis = await analyzer.analyze_upcoming_events(
+                days_ahead=days_ahead,
+                min_impact=EventImpact.MEDIUM,
+                force_refresh=False
+            )
+            
+            return {
+                "success": analysis.get("success", True),
+                "summary": analysis.get("summary", ""),
+                "market_outlook": analysis.get("market_outlook", "NEUTRAL"),
+                "volatility_level": analysis.get("volatility_level", "MEDIUM"),
+                "recommended_strategy": analysis.get("recommended_strategy", "NORMAL"),
+                "key_events": analysis.get("key_events", []),
+                "potential_impacts": analysis.get("potential_impacts", {}),
+                "affected_sectors": analysis.get("affected_sectors", []),
+                "trading_recommendations": analysis.get("trading_recommendations", []),
+                "risk_factors": analysis.get("risk_factors", []),
+                "events_count": analysis.get("events_count", 0),
+                "analyzed_at": analysis.get("analyzed_at"),
+            }
+            
+        except Exception as e:
+            logger.error(
+                "get_economic_calendar_analysis_error",
+                error=str(e),
+                days_ahead=days_ahead
+            )
+            
+            # Provide fallback analysis based on basic event data
+            try:
+                fallback_events = self._get_fallback_economic_events(days_ahead, "MEDIUM")
+                high_impact_count = sum(1 for e in fallback_events if e.get("impact") == "HIGH")
+                
+                if high_impact_count >= 3:
+                    volatility = "HIGH"
+                    strategy = "CAUTIOUS"
+                    outlook = "VOLATILE"
+                elif high_impact_count >= 1:
+                    volatility = "MEDIUM" 
+                    strategy = "CAUTIOUS"
+                    outlook = "NEUTRAL"
+                else:
+                    volatility = "LOW"
+                    strategy = "NORMAL"
+                    outlook = "NEUTRAL"
+                
+                return {
+                    "success": True,
+                    "summary": f"Found {len(fallback_events)} estimated economic events ({high_impact_count} high-impact). Analysis service unavailable.",
+                    "market_outlook": outlook,
+                    "volatility_level": volatility,
+                    "recommended_strategy": strategy,
+                    "key_events": [e.get("name") for e in fallback_events[:5]],
+                    "events_count": len(fallback_events),
+                    "note": "Fallback estimation (LLM analysis unavailable)",
+                }
+            except Exception as fallback_error:
+                logger.error("fallback_analysis_error", error=str(fallback_error))
+                return {
+                    "success": False,
+                    "error": str(e),
+                    "summary": "Economic calendar analysis temporarily unavailable",
+                    "market_outlook": "NEUTRAL",
+                    "volatility_level": "MEDIUM",
+                    "recommended_strategy": "CAUTIOUS",
+                }
+    
     # ========== NEW ADVANCED INTELLIGENCE TOOLS ==========
     
     async def get_advanced_indicators(
