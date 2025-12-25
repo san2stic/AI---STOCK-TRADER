@@ -199,20 +199,33 @@ class ModelSelector:
             if any(x in model_id.lower() for x in ["gpt-4", "claude-3", "claude-sonnet", "deepseek-r1", "gemini-3", "grok-4"]):
                 score += 8
             
-            # Specific high-quality models for finance
+            # Specific high-quality models for finance and general tasks
+            # Boost specific STABLE proven models
+            if "anthropic/claude-3.5-sonnet" in model_id:
+                score += 20
+            elif model_id == "openai/gpt-4o":
+                score += 25
+            elif "openai/gpt-4o" in model_id and "mini" not in model_id and "audio" not in model_id and "search" not in model_id:
+                score += 20
+            elif "google/gemini-pro-1.5" in model_id:
+                score += 15
+            elif "x-ai/grok-2" in model_id:
+                score += 15
+                
+            # Category specific adjustments
             if category == "finance":
-                if "claude-sonnet-4" in model_id or "deepseek-r1" in model_id:
-                    score += 15
-                if "gpt-5" in model_id or "gpt-4" in model_id:
-                    score += 12
-                if "grok-4" in model_id:
+                if "claude-3.5-sonnet" in model_id or "gpt-4o" in model_id:
                     score += 10
+                if "deepseek-chat" in model_id or "deepseek-v3" in model_id:
+                    score += 8
                     
             # For data analysis, prefer reasoning models
             if category == "data_analysis":
-                if "deepseek-r1" in model_id or "reasoning" in model_name:
+                if "deepseek-reasoner" in model_id or "deepseek-r1" in model_id:
                     score += 15
-                if "claude" in model_id or "gemini-3" in model_id:
+                if "claude-3.5-sonnet" in model_id:
+                    score += 12
+                if "gemini-pro-1.5" in model_id:
                     score += 10
             
             candidates.append({

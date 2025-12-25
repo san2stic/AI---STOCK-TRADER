@@ -114,7 +114,7 @@ class Settings(BaseSettings):
     parsing_fallback_to_regex: bool = True
     
     # Dynamic model selection
-    enable_dynamic_models: bool = False  # Use fixed models by default
+    enable_dynamic_models: bool = True  # Use OpenRouter to select best models
     model_selection_strategy: str = "performance"  # performance or cost_effective
     model_cache_hours: int = Field(default=1, ge=1, le=24)  # Hours to cache model selection
     
