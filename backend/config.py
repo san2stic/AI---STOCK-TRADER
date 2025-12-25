@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     trading_mode: str = Field(default="PAPER", description="PAPER or LIVE")
     initial_capital: float = Field(default=10000.0, ge=100.0)
     
-    # Vertex AI (Google Cloud)
+    # Vertex AI (Google Cloud) - Gemini 3 Pro
     vertex_ai_project_id: str = "project-id-placeholder"
     vertex_ai_location: str = "us-central1"
-    vertex_ai_model: str = "claude-3-5-sonnet@20240620"
+    vertex_ai_model: str = "gemini-3-pro"
     
     # Alpaca Markets (Free API)
     alpaca_api_key: str
@@ -105,17 +105,17 @@ class Settings(BaseSettings):
     crew_deliberation_rounds: int = Field(default=2, ge=1, le=3)
     crew_min_consensus_percent: float = Field(default=66.0, ge=50.0, le=100.0)
     crew_enable_mediator: bool = True
-    crew_mediator_model: str = "openai/gpt-5.2"
+    crew_mediator_model: str = "google/gemini-3-pro"
     crew_vote_weighting: str = "PERFORMANCE_BASED"
     crew_max_messages_per_round: int = Field(default=3, ge=1, le=10)
     
     # Order execution validator
     enable_order_validation: bool = True
-    order_validator_model: str = "anthropic/claude-4.5-sonnet"
+    order_validator_model: str = "google/gemini-3-pro"
     
     # Intelligent decision parsing (using Claude 4.5 Sonnet)
     enable_intelligent_parsing: bool = True
-    claude_parsing_model: str = "anthropic/claude-4.5-sonnet"
+    claude_parsing_model: str = "google/gemini-3-pro"
     parsing_cache_enabled: bool = True
     parsing_fallback_to_regex: bool = True
     
@@ -196,7 +196,7 @@ class Settings(BaseSettings):
 AGENT_CONFIGS = {
     "gpt4": {
         "name": "Titan",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Unshakeable long-term value storage",
         "strategy": "Deep Value",
         "risk_tolerance": "Medium",
@@ -210,7 +210,7 @@ AGENT_CONFIGS = {
     },
     "claude": {
         "name": "Nexus",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Central network of balanced distribution",
         "strategy": "Diversification",
         "risk_tolerance": "Low-Medium",
@@ -224,7 +224,7 @@ AGENT_CONFIGS = {
     },
     "grok": {
         "name": "Viper",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Lethal high-frequency momentum predator",
         "strategy": "Momentum & Catalysts",
         "risk_tolerance": "High",
@@ -239,7 +239,7 @@ AGENT_CONFIGS = {
     },
     "gemini": {
         "name": "Aegis",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Impenetrable shield of capital preservation",
         "strategy": "Risk Management",
         "risk_tolerance": "Low",
@@ -253,7 +253,7 @@ AGENT_CONFIGS = {
     },
     "deepseek": {
         "name": "Surge",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Electric reactive flow chaser",
         "strategy": "Sector Rotation",
         "risk_tolerance": "Medium-High",
@@ -266,7 +266,7 @@ AGENT_CONFIGS = {
     },
     "mistral": {
         "name": "Ranger",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Resourceful adaptive survivor",
         "strategy": "Active Trading",
         "risk_tolerance": "Medium",
@@ -279,7 +279,7 @@ AGENT_CONFIGS = {
     },
     "researcher": {
         "name": "Oracle",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "All-seeing data synthesizer",
         "strategy": "Fundamental Analysis",
         "risk_tolerance": "Low",
@@ -292,7 +292,7 @@ AGENT_CONFIGS = {
     },
     "risk_manager": {
         "name": "Sentinel",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Unsleeping guardian of system integrity",
         "strategy": "Hedging & Protection",
         "risk_tolerance": "Very Low",
@@ -304,7 +304,7 @@ AGENT_CONFIGS = {
     },
     "crypto_specialist": {
         "name": "Cipher",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Decoder of cryptographic alpha chains",
         "strategy": "Crypto Momentum",
         "risk_tolerance": "High",
@@ -317,7 +317,7 @@ AGENT_CONFIGS = {
     },
     "position_manager": {
         "name": "Warden",
-        "model": "anthropic/claude-4.5-sonnet",
+        "model": "google/gemini-3-pro",
         "personality": "Vigilant overseer of portfolio state",
         "strategy": "Position Optimization",
         "risk_tolerance": "Medium",

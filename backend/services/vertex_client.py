@@ -1,6 +1,6 @@
 """
-Google Cloud Vertex AI client for Claude access.
-Replaces OpenRouter with direct Vertex AI API calls.
+Google Cloud Vertex AI client for Gemini 3 Pro.
+Migrated from Claude/Anthropic to native Gemini API.
 """
 import httpx
 import json
@@ -14,39 +14,47 @@ import structlog
 logger = structlog.get_logger()
 settings = get_settings()
 
+
 class VertexAIClient:
     """
-    Client for Google Cloud Vertex AI API (specifically for Anthropic models).
-    Handles authentication via Google credentials (ADC) and raw prediction calls.
+    Client for Google Cloud Vertex AI API (Gemini models).
+    Uses native Gemini API format for function calling and generation.
     """
     
     def __init__(self):
         self.project_id = settings.vertex_ai_project_id
         self.location = settings.vertex_ai_location
-        # Default fallback if not specified in method
-        self.default_model = "claude-3-5-sonnet@20240620"
+        # Default to Gemini 3 Pro
+        self.default_model = "gemini-3-pro"
         
-        # Mapping from generic names/OpenRouter names to Vertex AI Model IDs
+        # Mapping from legacy/generic names to Vertex AI Model IDs
         self.model_mapping = {
-            "anthropic/claude-4.5-sonnet": "claude-3-5-sonnet@20240620",
-            "anthropic/claude-3.5-sonnet": "claude-3-5-sonnet@20240620",
-            "anthropic/claude-3-opus": "claude-3-opus@20240229",
-            "anthropic/claude-3-haiku": "claude-3-haiku@20240307",
-            # Fallbacks for other models if requested, mapping to Sonnet as requested "use only claude 4.5"
-            "openai/gpt-4o": "claude-3-5-sonnet@20240620",
-            "google/gemini-3-pro-preview": "claude-3-5-sonnet@20240620",
+            # Gemini models
+            "google/gemini-3-pro": "gemini-3-pro",
+            "google/gemini-2.5-flash": "gemini-2.5-flash",
+            "google/gemini-2.5-pro": "gemini-2.5-pro",
+            "google/gemini-2.0-flash": "gemini-2.0-flash-001",
+            "gemini-3-pro": "gemini-3-pro",
+            "gemini-2.5-flash": "gemini-2.5-flash",
+            
+            # Legacy Claude mappings -> redirect to Gemini
+            "anthropic/claude-4.5-sonnet": "gemini-3-pro",
+            "anthropic/claude-3.5-sonnet": "gemini-3-pro",
+            "anthropic/claude-3-opus": "gemini-3-pro",
+            "anthropic/claude-3-haiku": "gemini-2.5-flash",
+            
+            # Legacy OpenAI mappings -> redirect to Gemini
+            "openai/gpt-4o": "gemini-3-pro",
+            "openai/gpt-4-turbo-preview": "gemini-3-pro",
+            "openai/gpt-5.2": "gemini-3-pro",
         }
         
     def _get_access_token(self) -> str:
         """Get Google Cloud access token using ADC."""
         try:
-            # Load credentials from ADC or Environment
             credentials, project = google.auth.default()
-            
-            # Refresh token if needed
             auth_req = google.auth.transport.requests.Request()
             credentials.refresh(auth_req)
-            
             return credentials.token
         except Exception as e:
             logger.error("vertex_auth_error", error=str(e))
@@ -54,16 +62,49 @@ class VertexAIClient:
 
     def _get_vertex_endpoint(self, model: str) -> str:
         """
-        Get the Vertex AI endpoint URL for a specific model.
-        Format: https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/{REGION}/publishers/anthropic/models/{MODEL}:streamRawPredict
+        Get the Vertex AI endpoint URL for Gemini models.
+        Format: https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/{REGION}/publishers/google/models/{MODEL}:generateContent
         """
         # Resolve model ID
         vertex_model_id = self.model_mapping.get(model, model)
-        # If it doesn't look like a Vertex ID (no @ version), assume it's the default
-        if "@" not in vertex_model_id and "claude" in vertex_model_id:
-            vertex_model_id = "claude-3-5-sonnet@20240620"
+        
+        # Default fallback
+        if not vertex_model_id or vertex_model_id not in self.model_mapping.values():
+            vertex_model_id = self.default_model
             
-        return f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/anthropic/models/{vertex_model_id}:streamRawPredict"
+        return f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/{vertex_model_id}:generateContent"
+
+    def _convert_to_gemini_tools(self, tools: List[Dict]) -> List[Dict]:
+        """
+        Convert OpenAI/Anthropic tool format to Gemini functionDeclarations format.
+        
+        Input (OpenAI format):
+        {"type": "function", "function": {"name": ..., "description": ..., "parameters": ...}}
+        
+        Output (Gemini format):
+        {"functionDeclarations": [{"name": ..., "description": ..., "parameters": ...}]}
+        """
+        if not tools:
+            return []
+            
+        function_declarations = []
+        for tool in tools:
+            if "function" in tool:
+                fn = tool["function"]
+                function_declarations.append({
+                    "name": fn["name"],
+                    "description": fn.get("description", ""),
+                    "parameters": fn.get("parameters", {"type": "object", "properties": {}})
+                })
+            elif "name" in tool:
+                # Already in Gemini-like format
+                function_declarations.append({
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get("parameters", tool.get("input_schema", {"type": "object", "properties": {}}))
+                })
+        
+        return [{"functionDeclarations": function_declarations}] if function_declarations else []
 
     async def call_agent(
         self,
@@ -74,7 +115,7 @@ class VertexAIClient:
         max_tokens: int = 4096,
     ) -> Dict[str, Any]:
         """
-        Call Anthropic model on Vertex AI.
+        Call Gemini model on Vertex AI.
         API matches OpenRouterClient.call_agent for compatibility.
         """
         token = self._get_access_token()
@@ -85,66 +126,66 @@ class VertexAIClient:
             "Content-Type": "application/json; charset=utf-8",
         }
         
-        # Convert OpenRouter/OpenAI message format to Anthropic format if needed
-        # Anthropic Vertex API expects:
+        # Convert messages to Gemini format
+        # Gemini format:
         # {
-        #   "anthropic_version": "vertex-2023-10-16",
-        #   "messages": [...],
-        #   "system": "...",
-        #   "tools": [...]
+        #   "contents": [{"role": "user", "parts": [{"text": "..."}]}],
+        #   "systemInstruction": {"parts": [{"text": "..."}]},
+        #   "tools": [{"functionDeclarations": [...]}],
+        #   "generationConfig": {...}
         # }
         
-        # Extract system prompt if present in messages
-        system_prompt = ""
-        anthropic_messages = []
+        system_instruction = ""
+        gemini_contents = []
         
         for msg in messages:
             if msg["role"] == "system":
-                system_prompt += msg["content"] + "\n"
-            else:
-                anthropic_messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"]
+                system_instruction += msg["content"] + "\n"
+            elif msg["role"] == "user":
+                gemini_contents.append({
+                    "role": "user",
+                    "parts": [{"text": msg["content"]}]
+                })
+            elif msg["role"] == "assistant":
+                gemini_contents.append({
+                    "role": "model",
+                    "parts": [{"text": msg["content"]}]
                 })
         
         payload = {
-            "anthropic_version": "vertex-2023-10-16",
-            "messages": anthropic_messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "stream": False 
+            "contents": gemini_contents,
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens,
+                "topP": 0.95,
+                "topK": 40,
+            }
         }
         
-        if system_prompt:
-            payload["system"] = system_prompt.strip()
+        if system_instruction.strip():
+            payload["systemInstruction"] = {
+                "parts": [{"text": system_instruction.strip()}]
+            }
             
         if tools:
-            # Convert tools to Anthropic format
-            # OpenAI format: {"type": "function", "function": {"name": ..., "description": ..., "parameters": ...}}
-            # Anthropic format: {"name": ..., "description": ..., "input_schema": ...}
-            anthropic_tools = []
-            for tool in tools:
-                if "function" in tool:
-                    fn = tool["function"]
-                    anthropic_tools.append({
-                        "name": fn["name"],
-                        "description": fn.get("description", ""),
-                        "input_schema": fn["parameters"]
-                    })
-                else:
-                    # Assume already in Anthropic format or compatible
-                    anthropic_tools.append(tool)
-            
-            payload["tools"] = anthropic_tools
-            # Force auto tool choice (default behavior)
+            gemini_tools = self._convert_to_gemini_tools(tools)
+            if gemini_tools:
+                payload["tools"] = gemini_tools
+                # Enable automatic function calling
+                payload["toolConfig"] = {
+                    "functionCallingConfig": {
+                        "mode": "AUTO"
+                    }
+                }
             
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 logger.info(
                     "vertex_request",
                     model=model,
-                    endpoint=url.split("/")[-1],
-                    message_count=len(anthropic_messages),
+                    resolved_model=self.model_mapping.get(model, model),
+                    endpoint="generateContent",
+                    message_count=len(gemini_contents),
                     has_tools=bool(tools),
                 )
                 
@@ -158,36 +199,43 @@ class VertexAIClient:
                     logger.error(
                         "vertex_http_error",
                         status=response.status_code,
-                        body=response.text
+                        body=response.text[:500]
                     )
                     response.raise_for_status()
                     
                 data = response.json()
                 
-                # Transform response to match OpenRouter/OpenAI structure for compatibility
-                # Anthropic response:
+                # Transform Gemini response to OpenAI-compatible format
+                # Gemini response:
                 # {
-                #   "content": [{"type": "text", "text": "..."} or {"type": "tool_use", ...}],
-                #   ...
+                #   "candidates": [{
+                #     "content": {
+                #       "parts": [{"text": "..."} or {"functionCall": {"name": ..., "args": ...}}],
+                #       "role": "model"
+                #     }
+                #   }],
+                #   "usageMetadata": {...}
                 # }
-                # Target format (OpenAI-like):
-                # { "choices": [{ "message": { "content": "...", "tool_calls": [...] } }] }
                 
                 content = ""
                 tool_calls = []
                 
-                for item in data.get("content", []):
-                    if item["type"] == "text":
-                        content += item["text"]
-                    elif item["type"] == "tool_use":
-                        tool_calls.append({
-                            "id": item["id"],
-                            "type": "function",
-                            "function": {
-                                "name": item["name"],
-                                "arguments": json.dumps(item["input"])
-                            }
-                        })
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    for idx, part in enumerate(parts):
+                        if "text" in part:
+                            content += part["text"]
+                        elif "functionCall" in part:
+                            fc = part["functionCall"]
+                            tool_calls.append({
+                                "id": f"call_{idx}",
+                                "type": "function",
+                                "function": {
+                                    "name": fc["name"],
+                                    "arguments": json.dumps(fc.get("args", {}))
+                                }
+                            })
                 
                 simulated_response = {
                     "choices": [
@@ -199,16 +247,16 @@ class VertexAIClient:
                             }
                         }
                     ],
-                    "usage": data.get("usage", {})
+                    "usage": data.get("usageMetadata", {})
                 }
                 
                 # Log usage
-                usage = data.get("usage", {})
+                usage = data.get("usageMetadata", {})
                 logger.info(
                     "vertex_usage",
                     model=model,
-                    input_tokens=usage.get("input_tokens", 0),
-                    output_tokens=usage.get("output_tokens", 0),
+                    input_tokens=usage.get("promptTokenCount", 0),
+                    output_tokens=usage.get("candidatesTokenCount", 0),
                 )
                 
                 return simulated_response
@@ -217,7 +265,7 @@ class VertexAIClient:
             logger.error("vertex_error", model=model, error=str(e))
             raise
 
-    # Compatibility methods
+    # Compatibility methods (unchanged interface)
     def parse_tool_calls(self, response: Dict[str, Any]) -> List[Dict]:
         """Extract tool calls from response (same as OpenRouterClient)."""
         try:
@@ -248,6 +296,7 @@ class VertexAIClient:
             return message.get("content", "")
         except Exception:
             return ""
+
 
 # Singleton instance
 _client: Optional[VertexAIClient] = None

@@ -3,22 +3,21 @@
 import { useState, useEffect } from 'react';
 import { Activity } from 'lucide-react';
 import Shell from './components/layout/Shell';
-import AgentCard from './components/AgentCard';
-import LiveMessageFeed from './components/LiveMessageFeed';
-import PerformanceCharts from './components/PerformanceCharts';
-import CrewDashboard from './components/CrewDashboard';
-import RealTimeFunds from './components/RealTimeFunds';
-import LiveScoreBoard from './components/LiveScoreBoard';
-import TradingModeControl from './components/TradingModeControl';
-import StockCryptoSplit from './components/StockCryptoSplit';
-import EconomicCalendar from './components/EconomicCalendar';
-import EconomicCalendarAnalysis from './components/EconomicCalendarAnalysis';
+import AgentCard from './components/dashboard/AgentCard';
+import RealTimeFunds from './components/dashboard/RealTimeFunds';
+import NextScanCountdown from './components/dashboard/NextScanCountdown';
+import TradingModeControl from './components/dashboard/TradingModeControl';
+import StockCryptoSplit from './components/dashboard/StockCryptoSplit';
+import LiveScoreBoard from './components/dashboard/LiveScoreBoard';
+import AgentDetailModal from './components/dashboard/AgentDetailModal';
+import LiveMessageFeed from './components/trading/LiveMessageFeed';
+import PerformanceCharts from './components/trading/PerformanceCharts';
+import EconomicCalendar from './components/trading/EconomicCalendar';
+import CrewDashboard from './components/trading/CrewDashboard';
+import LearningDashboard from './components/trading/LearningDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
-import ModelDisplay from './components/ModelDisplay';
-import LearningDashboard from './components/LearningDashboard';
-import AgentDetailModal from './components/AgentDetailModal';
-import NextScanCountdown from './components/NextScanCountdown';
-import useApi from './hooks/useApi';
+import Card from './components/ui/Card';
+import Badge from './components/ui/Badge';
 
 interface Agent {
     name: string;
@@ -29,8 +28,6 @@ interface Agent {
     win_rate: number;
     cash: number;
     positions_count: number;
-    stock_value?: number;
-    crypto_value?: number;
 }
 
 interface Message {
@@ -44,53 +41,38 @@ type TabType = 'overview' | 'charts' | 'crew' | 'live' | 'learning';
 
 export default function Home() {
     const [activeTab, setActiveTab] = useState<TabType>('overview');
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [loading, setLoading] = useState(true);
     const [messages, setMessages] = useState<Message[]>([]);
     const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
-    const [ws, setWs] = useState<WebSocket | null>(null);
     const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
     const [isPaused, setIsPaused] = useState(false);
 
-    // Use useApi handling
-    const {
-        data: agentsData,
-        loading: agentsLoading,
-        refetch: refetchAgents
-    } = useApi<{ agents: Agent[] }>('/api/agents', {
-        autoFetch: true,
-        cacheDuration: 1000
-    });
+    // Fetch agents data
+    useEffect(() => {
+        const fetchAgents = async () => {
+            try {
+                const res = await fetch('/api/agents');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAgents(data.agents || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch agents:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const {
-        data: modelsData
-    } = useApi<{ agents: Record<string, any> }>('/api/models/current', {
-        autoFetch: true
-    });
+        fetchAgents();
+        const interval = setInterval(fetchAgents, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
-    const agents = agentsData?.agents || [];
-    const agentModels = modelsData?.agents || {};
-
-    const handlePause = async () => {
-        try {
-            await fetch('/api/trading/pause', { method: 'POST' });
-            setIsPaused(true);
-        } catch (error) {
-            console.error('Failed to pause trading:', error);
-        }
-    };
-
-    const handleResume = async () => {
-        try {
-            await fetch('/api/trading/resume', { method: 'POST' });
-            setIsPaused(false);
-        } catch (error) {
-            console.error('Failed to resume trading:', error);
-        }
-    };
-
-    // WebSocket logic kept here for real-time updates
+    // WebSocket connection
     useEffect(() => {
         const connectWebSocket = () => {
-            let wsUrl;
+            let wsUrl: string;
             if (typeof window !== 'undefined') {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const host = window.location.host;
@@ -115,19 +97,21 @@ export default function Home() {
                         agent: data.agent,
                         data: data,
                     };
-                    setMessages(prev => [message, ...prev].slice(0, 200));
+                    setMessages((prev) => [message, ...prev].slice(0, 200));
 
                     // Refresh agents on important events
                     if (['trade', 'decision', 'agent_decision'].includes(data.type)) {
-                        refetchAgents();
+                        fetch('/api/agents')
+                            .then((res) => res.json())
+                            .then((data) => setAgents(data.agents || []))
+                            .catch(console.error);
                     }
                 } catch (error) {
                     console.error('Failed to parse WebSocket message:', error);
                 }
             };
 
-            websocket.onerror = (error) => {
-                console.error('WebSocket error:', error);
+            websocket.onerror = () => {
                 setWsStatus('disconnected');
             };
 
@@ -137,25 +121,39 @@ export default function Home() {
                 setTimeout(connectWebSocket, 3000);
             };
 
-            setWs(websocket);
+            return websocket;
         };
 
-        connectWebSocket();
+        const ws = connectWebSocket();
+        return () => ws.close();
+    }, []);
 
-        return () => {
-            if (ws) {
-                ws.close();
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Empty dependency array as we want this to run once
+    const handlePause = async () => {
+        try {
+            await fetch('/api/trading/pause', { method: 'POST' });
+            setIsPaused(true);
+        } catch (error) {
+            console.error('Failed to pause trading:', error);
+        }
+    };
 
-    if (agentsLoading && agents.length === 0) {
+    const handleResume = async () => {
+        try {
+            await fetch('/api/trading/resume', { method: 'POST' });
+            setIsPaused(false);
+        } catch (error) {
+            console.error('Failed to resume trading:', error);
+        }
+    };
+
+    if (loading && agents.length === 0) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
-                    <div className="text-white text-2xl font-semibold animate-pulse">Chargement Nexus UI...</div>
+                    <div className="loading-spinner mx-auto mb-4" />
+                    <p className="text-white text-xl font-semibold animate-pulse">
+                        Initializing NexusAI...
+                    </p>
                 </div>
             </div>
         );
@@ -171,100 +169,106 @@ export default function Home() {
                 onResume={handleResume}
                 isPaused={isPaused}
             >
-                {/* Global Dashboard Content - Always Visible Elements could go here if needed, but per tab is cleaner */}
-
+                {/* Overview Tab */}
                 {activeTab === 'overview' && (
                     <div className="space-y-8 animate-fade-in">
-                        {/* Search & Global Stats Row */}
-                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        {/* Top Stats Row */}
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                             <div className="xl:col-span-2">
-                                <RealTimeFunds />
+                                <ErrorBoundary>
+                                    <RealTimeFunds />
+                                </ErrorBoundary>
                             </div>
                             <div className="xl:col-span-1">
-                                <NextScanCountdown />
+                                <ErrorBoundary>
+                                    <NextScanCountdown />
+                                </ErrorBoundary>
                             </div>
                         </div>
 
-                        {/* Markets & Controls Row */}
+                        {/* Controls Row */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <TradingModeControl />
-                            <StockCryptoSplit />
+                            <ErrorBoundary>
+                                <TradingModeControl />
+                            </ErrorBoundary>
+                            <ErrorBoundary>
+                                <StockCryptoSplit />
+                            </ErrorBoundary>
                         </div>
 
-                        {/* Leaderboard & Analysis */}
-                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        {/* Leaderboard & Calendar */}
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                             <div className="xl:col-span-2">
-                                <LiveScoreBoard agents={agents} />
+                                <ErrorBoundary>
+                                    <LiveScoreBoard agents={agents} />
+                                </ErrorBoundary>
                             </div>
-                            <div className="xl:col-span-1 space-y-6">
-                                <EconomicCalendar daysAhead={7} minImpact="MEDIUM" />
-                                <EconomicCalendarAnalysis daysAhead={7} />
+                            <div className="xl:col-span-1">
+                                <ErrorBoundary>
+                                    <EconomicCalendar daysAhead={7} minImpact="MEDIUM" />
+                                </ErrorBoundary>
                             </div>
                         </div>
 
-                        {/* AI Agents Grid */}
+                        {/* Agent Grid */}
                         <div>
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                                    <span className="w-1.5 h-8 bg-primary rounded-full shadow-neon-blue" />
-                                    Escouade Active
+                                    <span className="w-1.5 h-8 bg-gradient-to-b from-primary to-secondary rounded-full" />
+                                    AI Trading Agents
                                 </h2>
-                                <ModelDisplay />
+                                <Badge variant="info" dot pulse>
+                                    {agents.length} Active
+                                </Badge>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {agents.map(agent => {
-                                    const modelInfo = Object.values(agentModels).find(
-                                        (m: any) => m.name === agent.name
-                                    ) as any;
-
-                                    return (
-                                        <AgentCard
-                                            key={agent.name}
-                                            agent={{
-                                                ...agent,
-                                                model: modelInfo?.model,
-                                                model_category: modelInfo?.category,
-                                            }}
-                                            onClick={() => setSelectedAgent(agent.name)}
-                                        />
-                                    );
-                                })}
+                                {agents.map((agent) => (
+                                    <AgentCard
+                                        key={agent.name}
+                                        agent={agent}
+                                        onClick={() => setSelectedAgent(agent.name)}
+                                    />
+                                ))}
                             </div>
                         </div>
                     </div>
                 )}
 
+                {/* Charts Tab */}
                 {activeTab === 'charts' && (
                     <ErrorBoundary>
                         <PerformanceCharts agents={agents} />
                     </ErrorBoundary>
                 )}
 
-                {activeTab === 'learning' && (
-                    <ErrorBoundary>
-                        <LearningDashboard />
-                    </ErrorBoundary>
-                )}
-
+                {/* Crew Tab */}
                 {activeTab === 'crew' && (
                     <ErrorBoundary>
                         <CrewDashboard />
                     </ErrorBoundary>
                 )}
 
+                {/* Live Tab */}
                 {activeTab === 'live' && (
-                    <div className="glass-panel p-0 overflow-hidden min-h-[80vh] flex flex-col">
-                        <div className="p-6 border-b border-surface-border bg-surface/50">
+                    <Card variant="glass" padding="none" className="min-h-[80vh] flex flex-col">
+                        <div className="p-6 border-b border-surface-border">
                             <h2 className="text-2xl font-bold flex items-center gap-3">
                                 <Activity className="text-primary animate-pulse" />
-                                Flux Neural en Temps Réel
+                                Real-Time Activity Feed
                             </h2>
                         </div>
                         <div className="flex-1 overflow-hidden">
                             <LiveMessageFeed messages={messages} maxMessages={200} />
                         </div>
-                    </div>
+                    </Card>
+                )}
+
+                {/* Learning Tab */}
+                {activeTab === 'learning' && (
+                    <ErrorBoundary>
+                        <LearningDashboard />
+                    </ErrorBoundary>
                 )}
             </Shell>
 
